@@ -1,0 +1,5 @@
+import "fmt"
+
+point before(parse.SourceParse) {
+	fmt.Println("123")
+}
