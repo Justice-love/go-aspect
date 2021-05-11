@@ -25,23 +25,29 @@ type ImportStruct struct {
 }
 
 type FuncStruct struct {
-	FuncOwn  bool
+	Receiver *ReceiverStruct
 	FuncName string
 	FuncLine int
 	Params   []*ParamStruct
 	Context  bool
 }
 
+type ReceiverStruct struct {
+	Pointer  bool
+	Alias    string
+	Receiver string
+}
+
 type ParamStruct struct {
+	Pointer    bool
 	Name       string
 	ParamAlias string
 	ParamType  string
 	Context    bool
 }
 
-func NewFuncStruct(own bool, name string, line int) *FuncStruct {
+func NewFuncStruct(name string, line int) *FuncStruct {
 	return &FuncStruct{
-		FuncOwn:  own,
 		FuncName: name,
 		FuncLine: line,
 	}
@@ -88,6 +94,10 @@ func SourceParse(sourceFile string) *SourceStruct {
 			source.Funcs = append(source.Funcs, funcParse(reader, contentStr, line))
 		}
 	}
+	if source.Imports == nil {
+		source.ImportLine = 2
+		source.InjectImport = InlineImportInject
+	}
 	return source
 }
 
@@ -106,21 +116,51 @@ func funcMultiLine(reader *bufio.Reader, str string) *FuncStruct {
 
 func funcInline(str string, line int) (fun *FuncStruct) {
 	str = strings.TrimSpace(strings.TrimLeft(str, "func"))
-	own := ""
+	var (
+		receiver *ReceiverStruct
+	)
 	if strings.HasPrefix(str, "(") {
-		own = str[1:strings.Index(str, ")")]
+		receiver = inlineReceiver(str[1:strings.Index(str, ")")])
 		str = strings.TrimSpace(str[strings.Index(str, ")")+1:])
 	}
 	funName := str[:strings.Index(str, "(")]
 	paramStr := str[strings.Index(str, "(")+1 : strings.Index(str, ")")]
 	params, ctx := inlineParam(paramStr)
-	if own != "" {
-		fun = NewFuncStruct(true, funName, line)
-	} else {
-		fun = NewFuncStruct(false, funName, line)
-	}
+	fun = NewFuncStruct(funName, line)
+	fun.Receiver = receiver
 	fun.Params = params
 	fun.Context = ctx
+	return
+}
+
+func inlineReceiver(s string) *ReceiverStruct {
+	var r *ReceiverStruct
+	arr := strings.Split(strings.TrimSpace(s), " ")
+	if len(arr) == 1 {
+		t, p := checkPointer(strings.TrimSpace(arr[0]))
+		r = &ReceiverStruct{
+			Pointer:  p,
+			Alias:    "",
+			Receiver: t,
+		}
+	} else {
+		t, p := checkPointer(strings.TrimSpace(arr[1]))
+		r = &ReceiverStruct{
+			Pointer:  p,
+			Alias:    strings.TrimSpace(arr[0]),
+			Receiver: t,
+		}
+	}
+	return r
+}
+
+func checkPointer(s string) (t string, p bool) {
+	if strings.HasPrefix(s, "*") {
+		t = s[1:]
+		p = true
+	} else {
+		t = s
+	}
 	return
 }
 
@@ -137,7 +177,9 @@ func inlineParam(str string) (params []*ParamStruct, ctx bool) {
 			if len(types) == 1 {
 				param = &ParamStruct{Name: kvs[0], ParamType: types[0]}
 			} else {
-				param = &ParamStruct{Name: kvs[0], ParamAlias: types[0], ParamType: types[1]}
+				t, p := checkPointer(types[1])
+				param = &ParamStruct{Name: kvs[0], ParamAlias: types[0], ParamType: t}
+				param.Pointer = p
 				if types[0] == "context" && types[1] == "Context" {
 					ctx = true
 					param.Context = true

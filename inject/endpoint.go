@@ -19,7 +19,16 @@ var injectMap = map[string]InjectMod{
 type InjectMod func(sourceStruct *parse.SourceStruct, aspect *Aspect)
 
 func AfterInjectFile(sourceStruct *parse.SourceStruct, aspect *Aspect) {
-	log.Fatal("unsupported")
+	code := `
+	defer func() {
+		` + aspect.Point.code + `
+	}()` + "\n"
+
+	ctxName := contextName(aspect.Function.Params)
+	err := util.InsertStringToFile(sourceStruct.Path, bindParam(code, ctxName), aspect.Function.FuncLine)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
 }
 
 func BeforeInjectFile(sourceStruct *parse.SourceStruct, aspect *Aspect) {
@@ -30,22 +39,23 @@ func BeforeInjectFile(sourceStruct *parse.SourceStruct, aspect *Aspect) {
 	}
 }
 
-// import ""
-//point before(package.owner.func) {
-//	code here
-//}
 type Point struct {
-	mode          InjectMod
-	injectPackage string
-	injectFunc    string
-	injectOwn     string
-	code          string
-	imports       []*parse.ImportStruct
+	mode           InjectMod
+	injectPackage  string
+	injectFunc     string
+	injectReceiver *EndpointReceiver
+	code           string
+	imports        []*parse.ImportStruct
 }
 
 type Aspect struct {
 	Function *parse.FuncStruct
 	Point    *Point
+}
+
+type EndpointReceiver struct {
+	Pointer  bool
+	Receiver string
 }
 
 type Advice struct {
@@ -65,7 +75,7 @@ func NewAdvice(source *parse.SourceStruct, function *parse.FuncStruct, point *Po
 	}
 }
 
-func NewPoint(mode InjectMod, p, f, o string) *Point {
+func NewPoint(mode InjectMod, p, f string) *Point {
 	if mode == nil {
 		log.Fatalf("%s", "unsupported mode")
 	}
@@ -73,7 +83,6 @@ func NewPoint(mode InjectMod, p, f, o string) *Point {
 		mode:          mode,
 		injectPackage: p,
 		injectFunc:    f,
-		injectOwn:     o,
 	}
 }
 
@@ -117,9 +126,22 @@ func onePoint(str string, reader *bufio.Reader) (point *Point) {
 	}
 	ps := strings.Split(fs[1], ".")
 	if len(ps) == 2 {
-		point = NewPoint(injectMap[fs[0]], ps[0], ps[1], "")
+		point = NewPoint(injectMap[fs[0]], ps[0], ps[1])
 	} else {
-		point = NewPoint(injectMap[fs[0]], ps[0], ps[2], ps[1])
+		point = NewPoint(injectMap[fs[0]], ps[0], ps[2])
+		var receiver *EndpointReceiver
+		if strings.HasPrefix(ps[1], "*") {
+			receiver = &EndpointReceiver{
+				Pointer:  true,
+				Receiver: ps[1][1:],
+			}
+		} else {
+			receiver = &EndpointReceiver{
+				Pointer:  false,
+				Receiver: ps[1],
+			}
+		}
+		point.injectReceiver = receiver
 	}
 	for {
 		content, _, err := reader.ReadLine()
@@ -148,7 +170,16 @@ tag:
 			if f.FuncName != p.injectFunc {
 				continue
 			}
-			if f.FuncOwn && p.injectOwn == "" {
+			if p.injectReceiver == nil && f.Receiver != nil {
+				continue
+			}
+			if p.injectReceiver != nil && f.Receiver == nil {
+				continue
+			}
+			if f.Receiver != nil && p.injectReceiver.Receiver != f.Receiver.Receiver {
+				continue
+			}
+			if f.Receiver != nil && p.injectReceiver.Receiver == f.Receiver.Receiver && p.injectReceiver.Pointer != f.Receiver.Pointer {
 				continue
 			}
 			advice := NewAdvice(sourceStruct, f, p)
