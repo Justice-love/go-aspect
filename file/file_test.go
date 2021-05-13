@@ -1,35 +1,16 @@
 package file
 
 import (
-	"eddy.org/go-aspect/parse"
-	"fmt"
-	"sort"
-	"strings"
+	"eddy.org/go-aspect/inject"
 	"testing"
 )
 
-func TestSourceDir(t *testing.T) {
-	fmt.Println(SourceDir())
-}
-
-func TestParse(t *testing.T) {
-	str := "func (s) TestParse() {"
-	str = strings.TrimSpace(strings.TrimLeft(str, "func"))
-	s := strings.FieldsFunc(str, func(r rune) bool {
-		return r == '(' || r == ')'
-	})
-	fmt.Println(s)
-}
-
-func TestP(t *testing.T) {
-	str := "\"fmt\""
-	a := strings.Split(str, "\"")
-	fmt.Println(a)
-	vs := make([]*parse.FuncStruct, 2, 2)
-	vs[0] = &parse.FuncStruct{FuncLine: 1}
-	vs[1] = &parse.FuncStruct{FuncLine: 2}
-	sort.SliceStable(vs, func(i, j int) bool {
-		return vs[i].FuncLine > vs[j].FuncLine
-	})
-	fmt.Println(vs)
+func TestX_IteratorSource(t *testing.T) {
+	points := inject.Endpoints("/Users/xuyi/go/src/eddy.org/go-aspect/testdata")
+	x := X{
+		RootPath: "/Users/xuyi/go/src/eddy.org/go-aspect/testdata",
+		Points:   points,
+	}
+	advices := x.IteratorSource("/Users/xuyi/go/src/eddy.org/go-aspect/testdata")
+	inject.DoInjectCode(advices)
 }

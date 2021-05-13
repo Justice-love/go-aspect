@@ -1,0 +1,12 @@
+import "context"
+import "fmt"
+import "time"
+
+point after(testdata.*X.Some(c Context)) {
+	fmt.Println("456")
+	fmt.Println("789")
+}
+
+point before(testdata.*X.Some(c Context)) {
+	{{c}} = context.WithValue({{c}}, "date", time.Now())
+}

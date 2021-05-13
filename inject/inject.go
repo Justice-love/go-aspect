@@ -8,35 +8,6 @@ import (
 	"strings"
 )
 
-func BeforeInjectCode(advices []*Advice) {
-	adviceMap := make(map[*parse.SourceStruct]*Advice)
-	for _, one := range advices {
-		if advice, ok := adviceMap[one.Source]; ok {
-			advice.Aspect = append(advice.Aspect, one.Aspect...)
-		} else {
-			adviceMap[one.Source] = one
-		}
-	}
-	for _, v := range adviceMap {
-		sort.SliceStable(v.Aspect, func(i, j int) bool {
-			ai := v.Aspect[i]
-			aj := v.Aspect[j]
-			return ai.Function.FuncLine > aj.Function.FuncLine
-		})
-		for _, one := range v.Aspect {
-			ctxName := contextName(one.Function.Params)
-			err := util.InsertStringToFile(v.Source.Path, bindParam(one.Point.code, ctxName)+"\n", one.Function.FuncLine)
-			if err != nil {
-				log.Fatalf("%v", err)
-			}
-		}
-		if len(v.Aspect[0].Point.imports) > 0 {
-			v.Source.InjectImport(v.Source, v.Aspect[0].Point.imports)
-		}
-
-	}
-}
-
 func DoInjectCode(advices []*Advice) {
 	adviceMap := make(map[*parse.SourceStruct]*Advice)
 	for _, one := range advices {
@@ -50,10 +21,13 @@ func DoInjectCode(advices []*Advice) {
 		sort.SliceStable(v.Aspect, func(i, j int) bool {
 			ai := v.Aspect[i]
 			aj := v.Aspect[j]
-			return ai.Function.FuncLine > aj.Function.FuncLine
+			iline := ai.Point.mode.FunctionLine(ai)
+			jline := aj.Point.mode.FunctionLine(aj)
+			return iline > jline
 		})
 		for _, one := range v.Aspect {
-			one.Point.mode(v.Source, one)
+			log.Debugf("inject:%s %s", one.Point.mode.Name(), one.Function.FuncName)
+			one.Point.mode.InjectFunc(v.Source, one)
 		}
 		if len(v.Aspect[0].Point.imports) > 0 {
 			v.Source.InjectImport(v.Source, v.Aspect[0].Point.imports)
@@ -62,20 +36,63 @@ func DoInjectCode(advices []*Advice) {
 	}
 }
 
-func bindParam(code string, name string) string {
-	if name == "ctx" {
-		return code
-	} else {
-		return strings.ReplaceAll(code, "ctx", name)
+type InjectInterface interface {
+	InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect)
+	FunctionLine(aspect *Aspect) int
+	Name() string
+}
+
+var injectMap = map[string]InjectInterface{
+	"before": BeforeInjectFile{},
+	"after":  AfterInjectFile{},
+}
+
+type AfterInjectFile struct {
+}
+
+type BeforeInjectFile struct {
+}
+
+func (a AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncEndLine)
+	if err != nil {
+		log.Fatalf("%v", err)
 	}
 }
 
-func contextName(params []*parse.ParamStruct) string {
-	for _, one := range params {
-		if one.Context {
-			return one.Name
-		}
+func (a AfterInjectFile) FunctionLine(aspect *Aspect) int {
+	return aspect.Function.FuncEndLine
+}
+
+func (a AfterInjectFile) Name() string {
+	return "After"
+}
+
+func (b BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncLine)
+	if err != nil {
+		log.Fatalf("%v", err)
 	}
-	log.Fatal("no context param")
-	return ""
+}
+
+func (b BeforeInjectFile) FunctionLine(aspect *Aspect) int {
+	return aspect.Function.FuncLine
+}
+
+func (b BeforeInjectFile) Name() string {
+	return "Before"
+}
+
+func bindParam(code string, aspect *Aspect) string {
+	if aspect.Point.injectReceiver != nil && aspect.Function.Receiver.Alias != "" {
+		code = strings.ReplaceAll(code, "{{"+aspect.Point.injectReceiver.Receiver+"}}", aspect.Function.Receiver.Alias)
+	}
+	for i, p := range aspect.Function.Params {
+		pointParam := aspect.Point.params[i]
+		if p.Name == pointParam.Name {
+			continue
+		}
+		code = strings.ReplaceAll(code, "{{"+pointParam.Name+"}}", p.Name)
+	}
+	return code
 }

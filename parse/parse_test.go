@@ -9,12 +9,7 @@ import (
 )
 
 func TestSourceParse(t *testing.T) {
-	r := parse("/Users/xuyi/go/src/eddy.org/go-aspect")
-	fmt.Println(r)
-}
-
-func TestInlineFunction(t *testing.T) {
-	r := funcInline("func TestSourceParse() {", 10)
+	r := parse("/Users/xuyi/go/src/eddy.org/go-aspect/parse")
 	fmt.Println(r)
 }
 

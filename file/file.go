@@ -15,7 +15,6 @@ func DebugDir() string {
 		log.Fatalf("%v", err)
 	}
 	dest = fmt.Sprint(dest, "/", ".xgc")
-	log.Debugf("%s", dest)
 	err = os.MkdirAll(dest, 0700)
 	if err != nil {
 		log.Fatal(err)

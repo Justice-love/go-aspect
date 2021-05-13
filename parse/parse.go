@@ -7,6 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"sort"
 	"strings"
 )
 
@@ -25,11 +26,11 @@ type ImportStruct struct {
 }
 
 type FuncStruct struct {
-	Receiver *ReceiverStruct
-	FuncName string
-	FuncLine int
-	Params   []*ParamStruct
-	Context  bool
+	Receiver    *ReceiverStruct
+	FuncName    string
+	FuncLine    int
+	FuncEndLine int
+	Params      []*ParamStruct
 }
 
 type ReceiverStruct struct {
@@ -41,20 +42,33 @@ type ReceiverStruct struct {
 type ParamStruct struct {
 	Pointer    bool
 	Name       string
-	ParamAlias string
 	ParamType  string
-	Context    bool
+	StructType StructType
 }
 
-func NewFuncStruct(name string, line int) *FuncStruct {
+func NewFuncStruct(name string, line *int) *FuncStruct {
 	return &FuncStruct{
 		FuncName: name,
-		FuncLine: line,
+		FuncLine: *line,
 	}
 }
 
 func NewSourceStruct(path string) *SourceStruct {
 	return &SourceStruct{Path: path, InjectImport: MultiLineInject}
+}
+
+type ParamSort []*ParamStruct
+
+func (p ParamSort) Len() int {
+	return len(p)
+}
+
+func (p ParamSort) Less(i, j int) bool {
+	return fmt.Sprint(p[i].Name, "_", p[i].ParamType) > fmt.Sprint(p[j].Name, "_", p[j].ParamType)
+}
+
+func (p ParamSort) Swap(i, j int) {
+	p[i], p[j] = p[j], p[i]
 }
 
 func SourceParse(sourceFile string) *SourceStruct {
@@ -91,7 +105,12 @@ func SourceParse(sourceFile string) *SourceStruct {
 				source.ImportLine = line - 1
 			}
 		} else if strings.HasPrefix(contentStr, "func") {
-			source.Funcs = append(source.Funcs, funcParse(reader, contentStr, line))
+			funcLine := &line
+			funcS := funcParse(reader, contentStr, funcLine)
+			funcEndParse(reader, funcLine)
+			funcS.FuncEndLine = *funcLine - 1
+			line = *funcLine
+			source.Funcs = append(source.Funcs, funcS)
 		}
 	}
 	if source.Imports == nil {
@@ -101,20 +120,55 @@ func SourceParse(sourceFile string) *SourceStruct {
 	return source
 }
 
-func funcParse(reader *bufio.Reader, str string, line int) *FuncStruct {
-	if strings.HasSuffix(strings.TrimSpace(str), "{") {
-		return funcInline(str, line)
-	} else {
-		return funcMultiLine(reader, str)
+func funcEndParse(reader *bufio.Reader, line *int) {
+	count := 1
+	for {
+		content, _, err := reader.ReadLine()
+		if err != nil {
+			log.Fatal(err)
+		}
+		*line += 1
+		contentStr := string(content)
+		for _, r := range contentStr {
+			if r == '}' {
+				count -= 1
+			} else if r == '{' {
+				count += 1
+			}
+		}
+		if count == 0 {
+			break
+		}
 	}
 }
 
-func funcMultiLine(reader *bufio.Reader, str string) *FuncStruct {
-	log.Fatal("unsupported")
-	return nil
+func funcParse(reader *bufio.Reader, str string, line *int) *FuncStruct {
+	if strings.HasSuffix(strings.TrimSpace(str), "{") {
+		return funcInline(str, line)
+	} else {
+		return funcMultiLine(reader, str, line)
+	}
 }
 
-func funcInline(str string, line int) (fun *FuncStruct) {
+func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
+	funcStr := str
+	for {
+		content, _, err := reader.ReadLine()
+		if err != nil {
+			log.Fatal(err)
+		}
+		*line += 1
+		contentStr := string(content)
+		funcStr += contentStr
+		if strings.HasSuffix(strings.TrimSpace(contentStr), "{") {
+			break
+		}
+	}
+	return funcInline(funcStr, line)
+}
+
+//TODO: skip "}"
+func funcInline(str string, line *int) (fun *FuncStruct) {
 	str = strings.TrimSpace(strings.TrimLeft(str, "func"))
 	var (
 		receiver *ReceiverStruct
@@ -124,37 +178,60 @@ func funcInline(str string, line int) (fun *FuncStruct) {
 		str = strings.TrimSpace(str[strings.Index(str, ")")+1:])
 	}
 	funName := str[:strings.Index(str, "(")]
-	paramStr := str[strings.Index(str, "(")+1 : strings.Index(str, ")")]
-	params, ctx := inlineParam(paramStr)
+	paramStr := paramStr(str[strings.Index(str, "("):])
+	params := inlineParam(paramStr)
 	fun = NewFuncStruct(funName, line)
 	fun.Receiver = receiver
 	fun.Params = params
-	fun.Context = ctx
 	return
+}
+
+func paramStr(str string) string {
+	if len(str) == 0 {
+		return str
+	}
+	count := 0
+	for i, s := range str {
+		if i > 0 && count == 0 {
+			return str[1 : i-1]
+		}
+		if s == '(' {
+			count += 1
+		} else if s == ')' {
+			count -= 1
+		}
+	}
+	log.Fatalf("get whold param string failer, %v", str)
+	return ""
 }
 
 func inlineReceiver(s string) *ReceiverStruct {
 	var r *ReceiverStruct
-	arr := strings.Split(strings.TrimSpace(s), " ")
+	arr := util.SplitSpace(strings.TrimSpace(s))
 	if len(arr) == 1 {
-		t, p := checkPointer(strings.TrimSpace(arr[0]))
+		_, p := CheckPointer(strings.TrimSpace(arr[0]))
 		r = &ReceiverStruct{
 			Pointer:  p,
 			Alias:    "",
-			Receiver: t,
+			Receiver: receiveType(arr[0]),
 		}
 	} else {
-		t, p := checkPointer(strings.TrimSpace(arr[1]))
+		_, p := CheckPointer(strings.TrimSpace(arr[1]))
 		r = &ReceiverStruct{
 			Pointer:  p,
 			Alias:    strings.TrimSpace(arr[0]),
-			Receiver: t,
+			Receiver: receiveType(arr[1]),
 		}
 	}
 	return r
 }
 
-func checkPointer(s string) (t string, p bool) {
+func receiveType(s string) string {
+	arr := strings.Split(strings.TrimLeft(strings.TrimSpace(s), "*"), ".")
+	return arr[len(arr)-1]
+}
+
+func CheckPointer(s string) (t string, p bool) {
 	if strings.HasPrefix(s, "*") {
 		t = s[1:]
 		p = true
@@ -164,40 +241,31 @@ func checkPointer(s string) (t string, p bool) {
 	return
 }
 
-func inlineParam(str string) (params []*ParamStruct, ctx bool) {
-	ps := strings.Split(strings.TrimSpace(str), ",")
+func inlineParam(str string) (params []*ParamStruct) {
 	var typeHoldOn []*ParamStruct
-	for _, one := range ps {
-		kvs := strings.Split(strings.TrimSpace(one), " ")
-		if len(kvs) == 1 {
-			typeHoldOn = append(typeHoldOn, &ParamStruct{Name: kvs[0]})
+	for {
+		var paramStr string
+		paramStr, str = oneParam(str)
+		if len(paramStr) == 0 {
+			break
+		}
+		if !hasType(paramStr) {
+			typeHoldOn = append(typeHoldOn, &ParamStruct{Name: strings.TrimSpace(paramStr)})
 		} else {
-			types := strings.Split(kvs[1], ".")
-			var param *ParamStruct
-			if len(types) == 1 {
-				param = &ParamStruct{Name: kvs[0], ParamType: types[0]}
-			} else {
-				t, p := checkPointer(types[1])
-				param = &ParamStruct{Name: kvs[0], ParamAlias: types[0], ParamType: t}
-				param.Pointer = p
-				if types[0] == "context" && types[1] == "Context" {
-					ctx = true
-					param.Context = true
-				}
-			}
-			params = append(params, param)
-			if len(typeHoldOn) > 0 {
-				for _, h := range typeHoldOn {
-					h.ParamType = param.ParamType
-					h.ParamAlias = param.ParamAlias
-					h.Context = param.Context
-					params = append(params, h)
+			param := chooseStructType(paramStr)(paramStr)
+			if len(typeHoldOn) != 0 {
+				for _, one := range typeHoldOn {
+					one.ParamType = param.ParamType
+					one.StructType = param.StructType
+					one.Pointer = param.Pointer
+					params = append(params, one)
 				}
 				typeHoldOn = nil
 			}
+			params = append(params, param)
 		}
-
 	}
+	sort.Sort(ParamSort(params))
 	return
 }
 

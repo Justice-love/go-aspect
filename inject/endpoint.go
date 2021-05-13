@@ -8,44 +8,19 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"reflect"
+	"sort"
 	"strings"
 )
 
-var injectMap = map[string]InjectMod{
-	"before": BeforeInjectFile,
-	"after":  AfterInjectFile,
-}
-
-type InjectMod func(sourceStruct *parse.SourceStruct, aspect *Aspect)
-
-func AfterInjectFile(sourceStruct *parse.SourceStruct, aspect *Aspect) {
-	code := `
-	defer func() {
-		` + aspect.Point.code + `
-	}()` + "\n"
-
-	ctxName := contextName(aspect.Function.Params)
-	err := util.InsertStringToFile(sourceStruct.Path, bindParam(code, ctxName), aspect.Function.FuncLine)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-}
-
-func BeforeInjectFile(sourceStruct *parse.SourceStruct, aspect *Aspect) {
-	ctxName := contextName(aspect.Function.Params)
-	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code, ctxName)+"\n", aspect.Function.FuncLine)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-}
-
 type Point struct {
-	mode           InjectMod
+	mode           InjectInterface
 	injectPackage  string
 	injectFunc     string
 	injectReceiver *EndpointReceiver
 	code           string
 	imports        []*parse.ImportStruct
+	params         []*parse.ParamStruct
 }
 
 type Aspect struct {
@@ -75,14 +50,13 @@ func NewAdvice(source *parse.SourceStruct, function *parse.FuncStruct, point *Po
 	}
 }
 
-func NewPoint(mode InjectMod, p, f string) *Point {
+func NewPoint(mode InjectInterface, p string) *Point {
 	if mode == nil {
 		log.Fatalf("%s", "unsupported mode")
 	}
 	return &Point{
 		mode:          mode,
 		injectPackage: p,
-		injectFunc:    f,
 	}
 }
 
@@ -121,28 +95,26 @@ func onePoint(str string, reader *bufio.Reader) (point *Point) {
 	fs := strings.FieldsFunc(pure, func(r rune) bool {
 		return r == '(' || r == ')'
 	})
-	if len(fs) != 3 {
-		log.Fatal("unsupported")
+	if len(fs) != 3 && len(fs) != 4 {
+		log.Fatalf("bad point %s", str)
+		return
 	}
-	ps := strings.Split(fs[1], ".")
-	if len(ps) == 2 {
-		point = NewPoint(injectMap[fs[0]], ps[0], ps[1])
+	funs := strings.Split(fs[1], ".")
+	point = NewPoint(injectMap[fs[0]], funs[0])
+	if len(funs) == 2 {
+		point.injectFunc = funs[1]
 	} else {
-		point = NewPoint(injectMap[fs[0]], ps[0], ps[2])
-		var receiver *EndpointReceiver
-		if strings.HasPrefix(ps[1], "*") {
-			receiver = &EndpointReceiver{
-				Pointer:  true,
-				Receiver: ps[1][1:],
-			}
-		} else {
-			receiver = &EndpointReceiver{
-				Pointer:  false,
-				Receiver: ps[1],
-			}
-		}
-		point.injectReceiver = receiver
+		point.injectFunc = funs[2]
+		point.injectReceiver = endpointReceiver(funs[1])
 	}
+	if len(fs) == 4 {
+		point.params = endpointParams(fs[2])
+	}
+	point.code = endpointCode(reader)
+	return
+}
+
+func endpointCode(reader *bufio.Reader) (code string) {
 	for {
 		content, _, err := reader.ReadLine()
 		if err != nil {
@@ -152,9 +124,29 @@ func onePoint(str string, reader *bufio.Reader) (point *Point) {
 		if strings.HasPrefix(strings.TrimSpace(contentStr), "}") {
 			break
 		}
-		point.code += contentStr
+		code += contentStr + "\n"
 	}
-	return point
+	return
+}
+
+func endpointParams(s string) (params []*parse.ParamStruct) {
+	paramStrs := strings.Split(s, ",")
+	for _, one := range paramStrs {
+		nameAndType := util.SplitSpace(one)
+		t, p := parse.CheckPointer(nameAndType[1])
+		typeFunc := parse.GetTypeStruct(t)
+		params = append(params, &parse.ParamStruct{Pointer: p, Name: nameAndType[0], StructType: typeFunc, ParamType: t})
+	}
+	sort.Sort(parse.ParamSort(params))
+	return
+}
+
+func endpointReceiver(s string) *EndpointReceiver {
+	t, p := parse.CheckPointer(s)
+	return &EndpointReceiver{
+		Pointer:  p,
+		Receiver: t,
+	}
 }
 
 func Match(sourceStruct *parse.SourceStruct, points []*Point) (advices []*Advice) {
@@ -163,10 +155,8 @@ tag:
 		if p.injectPackage != sourceStruct.PackageStr {
 			return nil
 		}
+	tag2:
 		for _, f := range sourceStruct.Funcs {
-			if !f.Context {
-				continue
-			}
 			if f.FuncName != p.injectFunc {
 				continue
 			}
@@ -181,6 +171,17 @@ tag:
 			}
 			if f.Receiver != nil && p.injectReceiver.Receiver == f.Receiver.Receiver && p.injectReceiver.Pointer != f.Receiver.Pointer {
 				continue
+			}
+			if len(f.Params) != len(p.params) {
+				continue
+			}
+			for i, param := range f.Params {
+				pp := p.params[i]
+				paramFunc := reflect.ValueOf(param.StructType)
+				pointParamFunc := reflect.ValueOf(pp.StructType)
+				if param.ParamType != pp.ParamType || paramFunc.Pointer() != pointParamFunc.Pointer() || param.Pointer != pp.Pointer {
+					continue tag2
+				}
 			}
 			advice := NewAdvice(sourceStruct, f, p)
 			advices = append(advices, advice)

@@ -5,7 +5,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"regexp"
+	"strings"
 )
+
+var regx = regexp.MustCompile(`\s+`)
 
 func fileLines(filePath string) ([]string, error) {
 	f, err := os.Open(filePath)
@@ -47,4 +51,8 @@ func InsertStringToFile(path, str string, index int) error {
 	}
 
 	return ioutil.WriteFile(path, []byte(fileContent), 0644)
+}
+
+func SplitSpace(str string) []string {
+	return regx.Split(strings.TrimSpace(str), -1)
 }
