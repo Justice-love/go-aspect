@@ -9,7 +9,7 @@ import (
 )
 
 func TestSourceParse(t *testing.T) {
-	r := parse("/Users/xuyi/go/src/eddy.org/go-aspect/parse")
+	r := parse("/Users/xuyi/go/src/eddy.org/go-aspect/testdata")
 	fmt.Println(r)
 }
 

@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	"reflect"
-	"sort"
 	"strings"
 )
 
@@ -137,7 +136,6 @@ func endpointParams(s string) (params []*parse.ParamStruct) {
 		typeFunc := parse.GetTypeStruct(t)
 		params = append(params, &parse.ParamStruct{Pointer: p, Name: nameAndType[0], StructType: typeFunc, ParamType: t})
 	}
-	sort.Sort(parse.ParamSort(params))
 	return
 }
 

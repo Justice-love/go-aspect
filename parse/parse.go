@@ -7,7 +7,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"sort"
 	"strings"
 )
 
@@ -55,20 +54,6 @@ func NewFuncStruct(name string, line *int) *FuncStruct {
 
 func NewSourceStruct(path string) *SourceStruct {
 	return &SourceStruct{Path: path, InjectImport: MultiLineInject}
-}
-
-type ParamSort []*ParamStruct
-
-func (p ParamSort) Len() int {
-	return len(p)
-}
-
-func (p ParamSort) Less(i, j int) bool {
-	return fmt.Sprint(p[i].Name, "_", p[i].ParamType) > fmt.Sprint(p[j].Name, "_", p[j].ParamType)
-}
-
-func (p ParamSort) Swap(i, j int) {
-	p[i], p[j] = p[j], p[i]
 }
 
 func SourceParse(sourceFile string) *SourceStruct {
@@ -265,7 +250,6 @@ func inlineParam(str string) (params []*ParamStruct) {
 			params = append(params, param)
 		}
 	}
-	sort.Sort(ParamSort(params))
 	return
 }
 
