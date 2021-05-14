@@ -54,3 +54,7 @@ point           before(test.Do(c Context)) {
 
 1. xgc build：编译代码，和go build一样，直接执行编译后的文件即可
 2. xgc debug：生成织入后的代码，用以问题排查，代码存放在$USER_HOME/.xgc下
+
+## 效果图
+
+[效果图](!https://static.justice-love.com/image/png/go-aspect.png)
