@@ -4,6 +4,10 @@
 
 go-aspect是一个为golang提供切面编程可能性的工具，可以使用该工具，替换原有的go build来进行编译，将预先配置好的切面编织到目标代码中
 
+## 效果图
+
+![效果图](https://static.justice-love.com/image/png/go-aspect.png)
+
 ## 安装方式
 
 ### 源码安装
@@ -54,7 +58,3 @@ point           before(test.Do(c Context)) {
 
 1. xgc build：编译代码，和go build一样，直接执行编译后的文件即可
 2. xgc debug：生成织入后的代码，用以问题排查，代码存放在$USER_HOME/.xgc下
-
-## 效果图
-
-![效果图](https://static.justice-love.com/image/png/go-aspect.png)
