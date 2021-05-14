@@ -6,7 +6,7 @@ go-aspect是一个为golang提供切面编程可能性的工具，可以使用�
 
 ## 效果图
 
-![效果图](https://static.justice-love.com/image/png/go-aspect.png)
+![效果图](https://cdn.justice-love.com/image/png/go-aspect.png)
 
 ## 安装方式
 
