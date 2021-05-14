@@ -45,6 +45,10 @@ type InjectInterface interface {
 var injectMap = map[string]InjectInterface{
 	"before": BeforeInjectFile{},
 	"after":  AfterInjectFile{},
+	"defer":  DeferInjectFile{},
+}
+
+type DeferInjectFile struct {
 }
 
 type AfterInjectFile struct {
@@ -81,6 +85,26 @@ func (b BeforeInjectFile) FunctionLine(aspect *Aspect) int {
 
 func (b BeforeInjectFile) Name() string {
 	return "Before"
+}
+
+func (d DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	code := `
+	defer func() {
+		` + aspect.Point.code + `
+	}()` + "\n"
+
+	err := util.InsertStringToFile(sourceStruct.Path, bindParam(code, aspect), aspect.Function.FuncLine)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+}
+
+func (d DeferInjectFile) FunctionLine(aspect *Aspect) int {
+	return aspect.Function.FuncLine
+}
+
+func (d DeferInjectFile) Name() string {
+	return "Defer"
 }
 
 func bindParam(code string, aspect *Aspect) string {

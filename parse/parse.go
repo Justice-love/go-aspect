@@ -25,6 +25,7 @@ type ImportStruct struct {
 }
 
 type FuncStruct struct {
+	FuncString  string
 	Receiver    *ReceiverStruct
 	FuncName    string
 	FuncLine    int
@@ -106,6 +107,7 @@ func SourceParse(sourceFile string) *SourceStruct {
 }
 
 func funcEndParse(reader *bufio.Reader, line *int) {
+	skipHolder := &SkipHolder{}
 	count := 1
 	for {
 		content, _, err := reader.ReadLine()
@@ -115,6 +117,9 @@ func funcEndParse(reader *bufio.Reader, line *int) {
 		*line += 1
 		contentStr := string(content)
 		for _, r := range contentStr {
+			if skipHolder.NeedSkip(r) {
+				continue
+			}
 			if r == '}' {
 				count -= 1
 			} else if r == '{' {
@@ -127,12 +132,14 @@ func funcEndParse(reader *bufio.Reader, line *int) {
 	}
 }
 
-func funcParse(reader *bufio.Reader, str string, line *int) *FuncStruct {
+func funcParse(reader *bufio.Reader, str string, line *int) (f *FuncStruct) {
 	if strings.HasSuffix(strings.TrimSpace(str), "{") {
-		return funcInline(str, line)
+		f = funcInline(str, line)
+		f.FuncString = str
 	} else {
-		return funcMultiLine(reader, str, line)
+		f = funcMultiLine(reader, str, line)
 	}
+	return
 }
 
 func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
@@ -149,10 +156,11 @@ func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 			break
 		}
 	}
-	return funcInline(funcStr, line)
+	f := funcInline(funcStr, line)
+	f.FuncString = funcStr
+	return f
 }
 
-//TODO: skip "}"
 func funcInline(str string, line *int) (fun *FuncStruct) {
 	str = strings.TrimSpace(strings.TrimLeft(str, "func"))
 	var (
