@@ -27,7 +27,6 @@ func TempDir() string {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	log.Debugf("%s", dest)
 	return dest
 }
 

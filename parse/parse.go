@@ -20,8 +20,9 @@ type SourceStruct struct {
 }
 
 type ImportStruct struct {
-	ImportTag    string
-	ImportString string
+	ImportTag     string
+	ImportString  string
+	ImportEndTerm string
 }
 
 type FuncStruct struct {
@@ -285,9 +286,15 @@ func ImportStr(str string) *ImportStruct {
 	}
 	arr := strings.Split(str, "\"")
 	return &ImportStruct{
-		ImportTag:    strings.TrimSpace(arr[0]),
-		ImportString: arr[1],
+		ImportTag:     strings.TrimSpace(arr[0]),
+		ImportString:  arr[1],
+		ImportEndTerm: endTerm(arr[1]),
 	}
+}
+
+func endTerm(s string) string {
+	arr := strings.Split(s, "/")
+	return arr[len(arr)-1]
 }
 
 func InlineImportInject(sourceStruct *SourceStruct, imports []*ImportStruct) {

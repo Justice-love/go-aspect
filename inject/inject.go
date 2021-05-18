@@ -29,11 +29,27 @@ func DoInjectCode(advices []*Advice) {
 			log.Debugf("inject:%s %s", one.Point.mode.Name(), one.Function.FuncName)
 			one.Point.mode.InjectFunc(v.Source, one)
 		}
-		if len(v.Aspect[0].Point.imports) > 0 {
-			v.Source.InjectImport(v.Source, v.Aspect[0].Point.imports)
+		for _, one := range v.Aspect {
+			imports := filterImports(one.Point)
+			if len(imports) == 0 {
+				continue
+			} else {
+				v.Source.InjectImport(v.Source, imports)
+			}
 		}
 
 	}
+}
+
+func filterImports(point *Point) (imports []*parse.ImportStruct) {
+	for _, one := range point.imports {
+		if one.ImportTag != "" && strings.Contains(point.code, one.ImportTag+".") {
+			imports = append(imports, one)
+		} else if strings.Contains(point.code, one.ImportEndTerm+".") {
+			imports = append(imports, one)
+		}
+	}
+	return
 }
 
 type InjectInterface interface {
