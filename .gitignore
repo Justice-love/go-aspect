@@ -15,4 +15,4 @@ go-aspect
 .idea
 
 # Dependency directories (remove the comment below to include it)
-vendor/
+# vendor/
