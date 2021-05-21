@@ -17,8 +17,8 @@ go-aspect是一个为golang提供切面编程可能性的工具，可以使用�
 2. 切换到源码目录，运行 make install
 
 ## 使用简介
-
-编织是基于目标代码根目录下的`aspect.point`文件进行，文件样例如下：
+1. 目前仅支持mod模式的工程
+2. 编织是基于目标代码下以及依赖包中的`aspect.point`文件进行，文件样例如下：
 ```bigquery
 
 import "context"
