@@ -1,7 +1,7 @@
 package main
 
 import (
-	"eddy.org/go-aspect/cmd"
+	"github.com/Justice-love/go-aspect/cmd"
 )
 
 func main() {

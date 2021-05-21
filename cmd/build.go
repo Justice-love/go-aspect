@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"eddy.org/go-aspect/build"
-	"eddy.org/go-aspect/file"
-	"eddy.org/go-aspect/inject"
+	"github.com/Justice-love/go-aspect/build"
+	"github.com/Justice-love/go-aspect/file"
+	"github.com/Justice-love/go-aspect/inject"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"os"
@@ -24,19 +24,19 @@ var buildCmd = &cobra.Command{
 }
 
 func runBuild(args []string, wd string) {
-	tagStr := build.BuildTags(wd)
 	root := file.SourceCopy(file.TempDir(), file.SourceDir())
 	defer func() {
 		build.Clean(root)
 	}()
-	points := inject.Endpoints(root)
+	inspect := build.NewInspect(root)
+	points := inject.AllEndpoints(inspect.EndpointPath())
 	x := file.X{
 		RootPath: root,
 		Points:   points,
 	}
 	advices := x.IteratorSource(root)
 	inject.DoInjectCode(advices)
-	build.Build(root, tagStr, strings.Join(args, " "))
+	inspect.Build(root, inspect.BuildTags(wd), strings.Join(args, " "))
 }
 
 func init() {

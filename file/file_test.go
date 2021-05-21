@@ -1,16 +1,16 @@
 package file
 
 import (
-	"eddy.org/go-aspect/inject"
+	"github.com/Justice-love/go-aspect/inject"
 	"testing"
 )
 
 func TestX_IteratorSource(t *testing.T) {
-	points := inject.Endpoints("/Users/xuyi/go/src/eddy.org/go-aspect/testdata")
+	points := inject.Endpoints("/Users/xuyi/go/src/github.com/Justice-love/go-aspect/testdata")
 	x := X{
-		RootPath: "/Users/xuyi/go/src/eddy.org/go-aspect/testdata",
+		RootPath: "/Users/xuyi/go/src/github.com/Justice-love/go-aspect/testdata",
 		Points:   points,
 	}
-	advices := x.IteratorSource("/Users/xuyi/go/src/eddy.org/go-aspect/testdata")
+	advices := x.IteratorSource("/Users/xuyi/go/src/github.com/Justice-love/go-aspect/testdata")
 	inject.DoInjectCode(advices)
 }

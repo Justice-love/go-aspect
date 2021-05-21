@@ -2,8 +2,8 @@ package parse
 
 import (
 	"bufio"
-	"eddy.org/go-aspect/util"
 	"fmt"
+	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -32,6 +32,7 @@ type FuncStruct struct {
 	FuncLine    int
 	FuncEndLine int
 	Params      []*ParamStruct
+	ReturnLine  int
 }
 
 type ReceiverStruct struct {
@@ -94,7 +95,9 @@ func SourceParse(sourceFile string) *SourceStruct {
 		} else if strings.HasPrefix(contentStr, "func") {
 			funcLine := &line
 			funcS := funcParse(reader, contentStr, funcLine)
-			funcEndParse(reader, funcLine)
+			if returnLine := funcEndParse(reader, funcLine); returnLine > 0 {
+				funcS.ReturnLine = returnLine
+			}
 			funcS.FuncEndLine = *funcLine - 1
 			line = *funcLine
 			source.Funcs = append(source.Funcs, funcS)
@@ -107,7 +110,7 @@ func SourceParse(sourceFile string) *SourceStruct {
 	return source
 }
 
-func funcEndParse(reader *bufio.Reader, line *int) {
+func funcEndParse(reader *bufio.Reader, line *int) (returnLine int) {
 	skipHolder := &SkipHolder{}
 	count := 1
 	for {
@@ -117,6 +120,9 @@ func funcEndParse(reader *bufio.Reader, line *int) {
 		}
 		*line += 1
 		contentStr := string(content)
+		if strings.HasPrefix(strings.TrimSpace(contentStr), "return ") || strings.TrimSpace(contentStr) == "return" {
+			returnLine = *line
+		}
 		for _, r := range contentStr {
 			if skipHolder.NeedSkip(r) {
 				continue
@@ -131,6 +137,7 @@ func funcEndParse(reader *bufio.Reader, line *int) {
 			break
 		}
 	}
+	return
 }
 
 func funcParse(reader *bufio.Reader, str string, line *int) (f *FuncStruct) {
@@ -274,6 +281,9 @@ func importParse(reader *bufio.Reader, str string) (imports []*ImportStruct, inl
 		contentStr := string(content)
 		if strings.TrimSpace(contentStr) == ")" {
 			break
+		}
+		if strings.TrimSpace(contentStr) == "" {
+			continue
 		}
 		imports = append(imports, ImportStr(contentStr))
 	}

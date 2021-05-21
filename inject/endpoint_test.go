@@ -6,6 +6,6 @@ import (
 )
 
 func TestEndpoints(t *testing.T) {
-	arr := Endpoints("/Users/xuyi/go/src/eddy.org/go-aspect")
+	arr := Endpoints("/Users/xuyi/go/src/github.com/Justice-love/go-aspect")
 	fmt.Println(arr)
 }

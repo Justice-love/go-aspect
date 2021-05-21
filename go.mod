@@ -1,4 +1,4 @@
-module eddy.org/go-aspect
+module github.com/Justice-love/go-aspect
 
 go 1.14
 

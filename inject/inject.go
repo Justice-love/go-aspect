@@ -1,8 +1,8 @@
 package inject
 
 import (
-	"eddy.org/go-aspect/parse"
-	"eddy.org/go-aspect/util"
+	"github.com/Justice-love/go-aspect/parse"
+	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
 	"sort"
 	"strings"
@@ -74,14 +74,24 @@ type BeforeInjectFile struct {
 }
 
 func (a AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
-	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncEndLine)
+	line := 0
+	if aspect.Function.ReturnLine > 0 {
+		line = aspect.Function.ReturnLine - 1
+	} else {
+		line = aspect.Function.FuncEndLine
+	}
+	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), line)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 }
 
 func (a AfterInjectFile) FunctionLine(aspect *Aspect) int {
-	return aspect.Function.FuncEndLine
+	if aspect.Function.ReturnLine > 0 {
+		return aspect.Function.ReturnLine - 1
+	} else {
+		return aspect.Function.FuncEndLine
+	}
 }
 
 func (a AfterInjectFile) Name() string {

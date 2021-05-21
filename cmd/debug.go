@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"eddy.org/go-aspect/file"
-	"eddy.org/go-aspect/inject"
+	"github.com/Justice-love/go-aspect/build"
+	"github.com/Justice-love/go-aspect/file"
+	"github.com/Justice-love/go-aspect/inject"
 	"github.com/spf13/cobra"
 	"os"
 )
@@ -14,7 +15,8 @@ var debug = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = os.RemoveAll(file.DebugDir())
 		root := file.SourceCopy(file.DebugDir(), file.SourceDir())
-		points := inject.Endpoints(root)
+		inspect := build.NewInspect(root)
+		points := inject.AllEndpoints(inspect.EndpointPath())
 		x := file.X{
 			RootPath: root,
 			Points:   points,

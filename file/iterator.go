@@ -1,9 +1,9 @@
 package file
 
 import (
-	"eddy.org/go-aspect/inject"
-	"eddy.org/go-aspect/parse"
 	"fmt"
+	"github.com/Justice-love/go-aspect/inject"
+	"github.com/Justice-love/go-aspect/parse"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"strings"
@@ -21,6 +21,9 @@ func (x *X) IteratorSource(root string) (injects []*inject.Advice) {
 	}
 
 	for _, one := range info {
+		if one.IsDir() && one.Name() == "vendor" {
+			continue
+		}
 		if one.IsDir() {
 			injects = append(injects, x.IteratorSource(fmt.Sprint(root, "/", one.Name()))...)
 		} else {

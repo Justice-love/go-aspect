@@ -1,7 +1,7 @@
 package parse
 
 import (
-	"eddy.org/go-aspect/util"
+	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )

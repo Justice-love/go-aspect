@@ -2,9 +2,8 @@ package inject
 
 import (
 	"bufio"
-	"eddy.org/go-aspect/parse"
-	"eddy.org/go-aspect/util"
-	"fmt"
+	"github.com/Justice-love/go-aspect/parse"
+	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -59,8 +58,15 @@ func NewPoint(mode InjectInterface, p string) *Point {
 	}
 }
 
-func Endpoints(root string) (points []*Point) {
-	f, err := os.Open(fmt.Sprint(root, "/", "aspect.point"))
+func AllEndpoints(path []string) (points []*Point) {
+	for _, one := range path {
+		points = append(points, endpoints(one)...)
+	}
+	return
+}
+
+func endpoints(endpointPath string) (points []*Point) {
+	f, err := os.Open(endpointPath)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}

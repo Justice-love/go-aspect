@@ -28,7 +28,7 @@ func Clean(root string) {
 	_ = os.RemoveAll(root)
 }
 
-func Build(folder string, flags string, args string) {
+func (*Inspect) Build(folder string, flags string, args string) {
 	log.Debugf("flags:%s", flags)
 	var cmd *exec.Cmd
 	if strings.TrimSpace(args) == "" {
@@ -43,7 +43,7 @@ func Build(folder string, flags string, args string) {
 	_ = cmd.Wait()
 }
 
-func BuildTags(path string) string {
+func (*Inspect) BuildTags(path string) string {
 	tags := ""
 	if BuildA {
 		tags += " -a"
