@@ -4,8 +4,9 @@ go-aspect是一个为golang提供切面编程可能性的工具，可以使用�
 
 ## 效果图
 
-![效果图](https://user-images.githubusercontent.com/3375778/118356058-0a7b8d80-b5a6-11eb-9780-ba8e5f6a6d28.png)
-![效果图](https://user-images.githubusercontent.com/3375778/118898013-2c766680-b93e-11eb-8613-487fe36a9240.png)
+![效果图](https://user-images.githubusercontent.com/3375778/119075371-3d4cd800-ba23-11eb-87cc-93ee96dd5551.png)
+![效果图](https://user-images.githubusercontent.com/3375778/119075404-48076d00-ba23-11eb-93a6-d6616da8cef8.png)
+
 
 
 ## 安装方式
