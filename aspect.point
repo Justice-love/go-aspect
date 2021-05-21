@@ -1,12 +1,12 @@
 import "github.com/sirupsen/logrus"
-import "github.com/Justice-love/go-aspect/test"
+import "github.com/Justice-love/go-aspect/sample"
 import "context"
 
 
 point after(main.Do(c Context)) {
-	test.AfterPrint({{c}})
+	sample.AfterPrint({{c}})
 }
 
 point before(main.Do(c Context)) {
-	{{c}} = test.BeforePrint({{c}})
+	{{c}} = sample.BeforePrint({{c}})
 }
