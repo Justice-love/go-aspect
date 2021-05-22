@@ -2,19 +2,19 @@ package sample
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
+	"fmt"
 	"time"
 )
 
 func BeforePrint(ctx context.Context) context.Context {
-	log.Debug("test print")
+	fmt.Println("before print")
 	return context.WithValue(ctx, "date", time.Now())
 }
 
 func AfterPrint(ctx context.Context) {
-	log.Debug(ctx.Value("date"))
+	fmt.Println(ctx.Value("date"))
 }
 
 func DoPrint() {
-	log.Debug("Do")
+	fmt.Println("Do")
 }
