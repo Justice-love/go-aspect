@@ -1,0 +1,16 @@
+package main
+
+import (
+	ctx "context"
+	c "github.com/Justice-love/go-aspect/example"
+	"github.com/sirupsen/logrus"
+)
+
+func main()  {
+	logrus.Debug("begin")
+	Do(ctx.Background())
+}
+
+func Do(ct ctx.Context)  {
+	c.DoPrint()
+}
