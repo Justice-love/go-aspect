@@ -23,6 +23,8 @@ type ImportStruct struct {
 	ImportTag     string
 	ImportString  string
 	ImportEndTerm string
+	SourceTag     string
+	SourceContain bool
 }
 
 type FuncStruct struct {
@@ -310,7 +312,7 @@ func endTerm(s string) string {
 func InlineImportInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 	str := ""
 	for _, one := range imports {
-		if !contain(sourceStruct, one) {
+		if !Contain(sourceStruct, one) {
 			str += fmt.Sprint("import\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
 		}
 	}
@@ -324,7 +326,7 @@ func InlineImportInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 	str := ""
 	for _, one := range imports {
-		if !contain(sourceStruct, one) {
+		if !Contain(sourceStruct, one) {
 			str += fmt.Sprint("\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
 		}
 	}
@@ -335,10 +337,11 @@ func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 	}
 }
 
-func contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
+func Contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
 	for _, one := range sourceStruct.Imports {
 		if one.ImportString == i.ImportString {
-			i.ImportTag = one.ImportTag
+			i.SourceTag = one.ImportTag
+			i.SourceContain = true
 			return true
 		}
 	}

@@ -74,6 +74,9 @@ type BeforeInjectFile struct {
 }
 
 func (a AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	for _, one := range aspect.Point.imports {
+		_ = parse.Contain(sourceStruct, one)
+	}
 	line := 0
 	if aspect.Function.ReturnLine > 0 {
 		line = aspect.Function.ReturnLine - 1
@@ -99,6 +102,9 @@ func (a AfterInjectFile) Name() string {
 }
 
 func (b BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	for _, one := range aspect.Point.imports {
+		_ = parse.Contain(sourceStruct, one)
+	}
 	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncLine)
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -114,6 +120,9 @@ func (b BeforeInjectFile) Name() string {
 }
 
 func (d DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	for _, one := range aspect.Point.imports {
+		_ = parse.Contain(sourceStruct, one)
+	}
 	code := `
 	defer func() {
 		` + aspect.Point.code + `
@@ -143,6 +152,19 @@ func bindParam(code string, aspect *Aspect) string {
 			continue
 		}
 		code = strings.ReplaceAll(code, "{{"+pointParam.Name+"}}", p.Name)
+	}
+	for _, one := range aspect.Point.imports {
+		if one.SourceContain && one.SourceTag != one.ImportTag {
+			e := one.ImportEndTerm
+			if one.ImportTag != "" {
+				e = one.ImportTag
+			}
+			n := one.SourceTag
+			if one.SourceTag == "" {
+				n = one.ImportEndTerm
+			}
+			code = strings.ReplaceAll(code, e+".", n+".")
+		}
 	}
 	return code
 }
