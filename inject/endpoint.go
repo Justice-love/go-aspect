@@ -86,7 +86,7 @@ func endpoints(endpointPath string) (points []*Point) {
 		contentStr := string(content)
 		if strings.HasPrefix(contentStr, "point") {
 			point := onePoint(contentStr, reader)
-			point.imports = imports
+			point.imports = parse.ImportCopy(imports)
 			points = append(points, point)
 		} else if strings.HasPrefix(contentStr, "import") {
 			imports = append(imports, parse.ImportStr(contentStr))

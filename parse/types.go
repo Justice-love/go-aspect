@@ -145,3 +145,15 @@ func interfaceFunc(str string) (param *ParamStruct) {
 	}
 	return
 }
+
+func ImportCopy(imports []*ImportStruct) (result []*ImportStruct) {
+	result = make([]*ImportStruct, len(imports))
+	for i, one := range imports {
+		result[i] = &ImportStruct{
+			ImportTag:     one.ImportTag,
+			ImportString:  one.ImportString,
+			ImportEndTerm: one.ImportEndTerm,
+		}
+	}
+	return
+}

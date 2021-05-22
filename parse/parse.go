@@ -338,6 +338,7 @@ func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 func contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
 	for _, one := range sourceStruct.Imports {
 		if one.ImportString == i.ImportString {
+			i.ImportTag = one.ImportTag
 			return true
 		}
 	}
