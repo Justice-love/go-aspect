@@ -4,13 +4,15 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 )
 
 func TestSourceParse(t *testing.T) {
-	r := parse("/Users/xuyi/go/src/github.com/Justice-love/go-aspect/parse")
-	fmt.Println(r)
+	dir, _ := os.Getwd()
+	r := parse(dir[:strings.LastIndex(dir, "/")])
+	fmt.Println(SourcePrettyText(r))
 }
 
 func parse(root string) (sources []*SourceStruct) {
@@ -20,6 +22,9 @@ func parse(root string) (sources []*SourceStruct) {
 	}
 
 	for _, one := range info {
+		if one.IsDir() && one.Name() == "vendor" {
+			continue
+		}
 		if one.IsDir() {
 			sources = append(sources, parse(fmt.Sprint(root, "/", one.Name()))...)
 		} else {

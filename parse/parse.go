@@ -2,6 +2,7 @@ package parse
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
@@ -346,4 +347,63 @@ func Contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
 		}
 	}
 	return false
+}
+
+func SourcePrettyText(sources []*SourceStruct) string {
+	var buff bytes.Buffer
+	for j, source := range sources {
+		_, _ = buff.WriteString("{\n")
+		_, _ = buff.WriteString("\tpath: " + source.Path)
+		_, _ = buff.WriteString("\n")
+		_, _ = buff.WriteString("\tpackage ")
+		_, _ = buff.WriteString("\x1b[31m")
+		_, _ = buff.WriteString("" + source.PackageStr)
+		_, _ = buff.WriteString("\x1b[0m")
+		_, _ = buff.WriteString("\n")
+		if len(source.Imports) > 0 {
+			_, _ = buff.WriteString("\timport {\n")
+		}
+		for _, im := range source.Imports {
+			_, _ = buff.WriteString("\x1b[32m")
+			_, _ = buff.WriteString("\t\t" + im.ImportString)
+			_, _ = buff.WriteString("\x1b[0m")
+			_, _ = buff.WriteString("\n")
+		}
+		if len(source.Imports) > 0 {
+			_, _ = buff.WriteString("\t}\n")
+		}
+		_, _ = buff.WriteString("\n")
+		for _, fu := range source.Funcs {
+			_, _ = buff.WriteString("\tfunc ")
+			if fu.Receiver != nil {
+				_, _ = buff.WriteString("(\x1b[31m")
+				if fu.Receiver.Pointer {
+					_, _ = buff.WriteString("*")
+				}
+				_, _ = buff.WriteString(fu.Receiver.Receiver)
+				_, _ = buff.WriteString("\x1b[0m) ")
+			}
+			_, _ = buff.WriteString("\x1b[31m")
+			_, _ = buff.WriteString(fu.FuncName)
+			_, _ = buff.WriteString("\x1b[0m")
+			_, _ = buff.WriteString("(")
+			for i, p := range fu.Params {
+				_, _ = buff.WriteString("\x1b[32m")
+				_, _ = buff.WriteString(p.Name)
+				_, _ = buff.WriteString(" ")
+				_, _ = buff.WriteString(p.ParamType)
+				_, _ = buff.WriteString("\x1b[0m")
+				if i < len(fu.Params)-1 {
+					_, _ = buff.WriteString(", ")
+				}
+			}
+			_, _ = buff.WriteString(")\n")
+		}
+		if j < len(sources)-1 {
+			_, _ = buff.WriteString("},\n")
+		} else {
+			_, _ = buff.WriteString("}\n")
+		}
+	}
+	return buff.String()
 }

@@ -15,6 +15,7 @@ var ParamTypes = map[string]StructType{
 	"map":       mapFunc,
 	"func":      funcFunc,
 	"interface": interfaceFunc,
+	"chan":      chanFunc,
 }
 
 func GetTypeStruct(t string) StructType {
@@ -75,6 +76,8 @@ func chooseStructType(str string) StructType {
 		return mapFunc
 	} else if strings.HasPrefix(t, "interface") {
 		return interfaceFunc
+	} else if strings.HasPrefix(t, "chan") || strings.HasPrefix(t, "<-") {
+		return chanFunc
 	} else {
 		return structFunc
 	}
@@ -142,6 +145,16 @@ func interfaceFunc(str string) (param *ParamStruct) {
 		Name:       kvs[0],
 		ParamType:  "interface",
 		StructType: interfaceFunc,
+	}
+	return
+}
+
+func chanFunc(str string) (param *ParamStruct) {
+	kvs := util.SplitSpace(strings.TrimSpace(str))
+	param = &ParamStruct{
+		Name:       kvs[0],
+		ParamType:  "chan",
+		StructType: chanFunc,
 	}
 	return
 }
