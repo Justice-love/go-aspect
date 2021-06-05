@@ -6,9 +6,9 @@ import (
 	"strings"
 )
 
-type StructType func(str string) (param *ParamStruct)
+type ParamStructType func(str string) (param *ParamStruct)
 
-var ParamTypes = map[string]StructType{
+var ParamTypes = map[string]ParamStructType{
 	"struct":    structFunc,
 	"slice":     sliceFunc,
 	"array":     arrayFunc,
@@ -18,7 +18,7 @@ var ParamTypes = map[string]StructType{
 	"chan":      chanFunc,
 }
 
-func GetTypeStruct(t string) StructType {
+func GetTypeStruct(t string) ParamStructType {
 	if ty, ok := ParamTypes[t]; ok {
 		return ty
 	} else {
@@ -64,7 +64,7 @@ func hasType(str string) bool {
 	return len(kvs) > 1
 }
 
-func chooseStructType(str string) StructType {
+func chooseStructType(str string) ParamStructType {
 	t := strings.TrimSpace(str[strings.Index(str, " "):])
 	if strings.HasPrefix(t, "func") {
 		return funcFunc

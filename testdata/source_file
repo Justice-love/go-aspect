@@ -36,7 +36,7 @@ type FuncStruct struct {
 	FuncEndLine int
 	Params      []*ParamStruct
 	ReturnLine  int
-	Returns     []ReturnType
+	Returns []ReturnType
 }
 
 type ReceiverStruct struct {
@@ -210,7 +210,7 @@ func inlineReturns(str string) []ReturnType {
 	}
 	var check []int
 	for i, c := range types {
-		if !c {
+		if ! c {
 			check = append(check, i)
 		}
 		if c && len(check) > 0 {
@@ -233,7 +233,7 @@ func returnStr(s string, str string) string {
 	remain = strings.Replace(remain, ")", "", 1)
 	remain = strings.TrimSpace(strings.TrimRight(remain, "{"))
 	if strings.HasPrefix(remain, "(") {
-		return remain[1 : len(remain)-1]
+		return remain[1:len(remain)-1]
 	} else {
 		return remain
 	}
@@ -451,7 +451,7 @@ func SourcePrettyText(sources []*SourceStruct) string {
 				_, _ = buff.WriteString("\x1b[32m")
 				_, _ = buff.WriteString(ReturnNameMap[p])
 				_, _ = buff.WriteString("\x1b[0m")
-				if i < len(fu.Returns)-1 {
+				if i < len(fu.Params)-1 {
 					_, _ = buff.WriteString(", ")
 				}
 			}

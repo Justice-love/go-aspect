@@ -1,0 +1,9 @@
+package t
+
+func f(s string, f func(m string)) (func(t, m string), error) {
+
+}
+
+func f2(s string, f func(m string)) (ff func(t, m string), err error) {
+
+}
