@@ -18,5 +18,15 @@ func TestSourceParse(t *testing.T) {
 	if source == nil {
 		t.Fatal()
 	}
+	if source.Funcs[20].NameLine != 402 {
+		t.Fatal()
+	}
 	fmt.Println(SourcePrettyText([]*SourceStruct{source}))
+}
+
+func TestInlineFunction(t *testing.T) {
+	f := "func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {"
+	line := 10
+	fu := funcInline(f, &line)
+	fmt.Println(fu)
 }

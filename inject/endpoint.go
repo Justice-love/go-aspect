@@ -2,6 +2,7 @@ package inject
 
 import (
 	"bufio"
+	"bytes"
 	"github.com/Justice-love/go-aspect/parse"
 	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
@@ -193,4 +194,38 @@ tag:
 		}
 	}
 	return
+}
+
+func EndpointPrettyText(endpoints []*Point) string {
+	var buff bytes.Buffer
+	for _, one := range endpoints {
+		_, _ = buff.WriteString(one.mode.Name())
+		_, _ = buff.WriteString("\t")
+		if one.injectReceiver != nil {
+			_, _ = buff.WriteString("(")
+			if one.injectReceiver.Pointer {
+				_, _ = buff.WriteString("*")
+			}
+			_, _ = buff.WriteString(one.injectReceiver.Receiver)
+			_, _ = buff.WriteString(")")
+			_, _ = buff.WriteString("\t")
+		}
+		_, _ = buff.WriteString(one.injectPackage)
+		_, _ = buff.WriteString(".")
+		_, _ = buff.WriteString(one.injectFunc)
+		_, _ = buff.WriteString("(")
+		for i, p := range one.params {
+			_, _ = buff.WriteString("\x1b[32m")
+			_, _ = buff.WriteString(p.Name)
+			_, _ = buff.WriteString(" ")
+			_, _ = buff.WriteString(p.ParamType)
+			_, _ = buff.WriteString("\x1b[0m")
+			if i < len(one.params)-1 {
+				_, _ = buff.WriteString(", ")
+			}
+		}
+		_, _ = buff.WriteString(")")
+		_, _ = buff.WriteString("\n")
+	}
+	return buff.String()
 }

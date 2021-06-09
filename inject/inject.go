@@ -23,6 +23,9 @@ func DoInjectCode(advices []*Advice) {
 			aj := v.Aspect[j]
 			iline := ai.Point.mode.FunctionLine(ai)
 			jline := aj.Point.mode.FunctionLine(aj)
+			if iline == jline && ai.Point.mode == aj.Point.mode {
+				panic("duplicate")
+			}
 			return iline > jline
 		})
 		for _, one := range v.Aspect {
@@ -83,10 +86,7 @@ func (a AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *As
 	} else {
 		line = aspect.Function.FuncEndLine
 	}
-	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), line)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+	util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), line)
 }
 
 func (a AfterInjectFile) FunctionLine(aspect *Aspect) int {
@@ -105,10 +105,7 @@ func (b BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *A
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
-	err := util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncLine)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+	util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncLine)
 }
 
 func (b BeforeInjectFile) FunctionLine(aspect *Aspect) int {
@@ -128,10 +125,7 @@ func (d DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *As
 		` + aspect.Point.code + `
 	}()` + "\n"
 
-	err := util.InsertStringToFile(sourceStruct.Path, bindParam(code, aspect), aspect.Function.FuncLine)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
+	util.InsertStringToFile(sourceStruct.Path, bindParam(code, aspect), aspect.Function.FuncLine)
 }
 
 func (d DeferInjectFile) FunctionLine(aspect *Aspect) int {
@@ -167,4 +161,48 @@ func bindParam(code string, aspect *Aspect) string {
 		}
 	}
 	return code
+}
+
+type AroundInjectFile struct {
+}
+
+func (a AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	name := util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	code := aspect.Function.FuncString + "\n"
+	if len(aspect.Function.Returns) > 0 {
+		code += "\treturn " + aroundTarget(aspect.Function, name) + "\n"
+	} else {
+		code += "\t" + aroundTarget(aspect.Function, name) + "\n"
+	}
+	code += "}\n"
+	util.Append(sourceStruct.Path, code)
+}
+
+func aroundTarget(function *parse.FuncStruct, name string) string {
+	if function.Receiver != nil {
+		return function.Receiver.Alias + "." + name + targetParam(function)
+	} else {
+		return name + targetParam(function)
+	}
+}
+
+func targetParam(function *parse.FuncStruct) string {
+	code := "("
+	for i, one := range function.Params {
+		if i == len(function.Params)-1 {
+			code += one.Name
+		} else {
+			code += one.Name + ","
+		}
+	}
+	code += ")"
+	return code
+}
+
+func (a AroundInjectFile) FunctionLine(*Aspect) int {
+	return int(^uint(0) >> 1)
+}
+
+func (a AroundInjectFile) Name() string {
+	return "Around"
 }

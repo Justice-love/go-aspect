@@ -18,6 +18,7 @@ type SourceStruct struct {
 	Funcs        []*FuncStruct
 	InjectImport func(sourceStruct *SourceStruct, imports []*ImportStruct)
 	ImportLine   int
+	FileLine     int
 }
 
 type ImportStruct struct {
@@ -37,6 +38,7 @@ type FuncStruct struct {
 	Params      []*ParamStruct
 	ReturnLine  int
 	Returns     []ReturnType
+	NameLine    int
 }
 
 type ReceiverStruct struct {
@@ -77,6 +79,7 @@ func SourceParse(sourceFile string) *SourceStruct {
 	for {
 		content, _, err := reader.ReadLine()
 		if err == io.EOF {
+			source.FileLine = line
 			break
 		}
 		if err != nil {
@@ -156,6 +159,7 @@ func funcParse(reader *bufio.Reader, str string, line *int) (f *FuncStruct) {
 
 func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 	funcStr := str
+	fs := make(map[int]string)
 	for {
 		content, _, err := reader.ReadLine()
 		if err != nil {
@@ -163,6 +167,7 @@ func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 		}
 		*line += 1
 		contentStr := string(content)
+		fs[*line] = contentStr
 		funcStr += contentStr
 		if strings.HasSuffix(strings.TrimSpace(contentStr), "{") {
 			break
@@ -170,6 +175,12 @@ func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 	}
 	f := funcInline(funcStr, line)
 	f.FuncString = funcStr
+	for k, v := range fs {
+		if strings.Contains(v, f.FuncName) {
+			f.NameLine = k
+			break
+		}
+	}
 	return f
 }
 
@@ -191,6 +202,7 @@ func funcInline(str string, line *int) (fun *FuncStruct) {
 	fun.Receiver = receiver
 	fun.Params = params
 	fun.Returns = returns
+	fun.NameLine = *line
 	return
 }
 
@@ -367,10 +379,7 @@ func InlineImportInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 		}
 	}
 	str += "\n"
-	err := util.InsertStringToFile(sourceStruct.Path, str, sourceStruct.ImportLine)
-	if err != nil {
-		log.Fatal(err)
-	}
+	util.InsertStringToFile(sourceStruct.Path, str, sourceStruct.ImportLine)
 }
 
 func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
@@ -381,10 +390,7 @@ func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 		}
 	}
 	str += "\n"
-	err := util.InsertStringToFile(sourceStruct.Path, str, sourceStruct.ImportLine)
-	if err != nil {
-		log.Fatal(err)
-	}
+	util.InsertStringToFile(sourceStruct.Path, str, sourceStruct.ImportLine)
 }
 
 func Contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
@@ -398,7 +404,8 @@ func Contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
 	return false
 }
 
-func SourcePrettyText(sources []*SourceStruct) string {
+func SourcePrettyText(
+	sources []*SourceStruct) string {
 	var buff bytes.Buffer
 	for j, source := range sources {
 		_, _ = buff.WriteString("{\n")
