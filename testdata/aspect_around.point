@@ -1,0 +1,11 @@
+import "github.com/sirupsen/logrus"
+import "github.com/Justice-love/go-aspect/sample"
+import "context"
+
+
+point around(today.*X.Some(c Context)) {
+	{{c}} = context.WithValue({{c}}, "date", time.Now())
+	invoke()
+	logrus.log("end")
+}
+

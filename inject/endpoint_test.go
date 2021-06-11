@@ -6,6 +6,6 @@ import (
 )
 
 func TestEndpoints(t *testing.T) {
-	arr := endpoints("../testdata/aspect.point")
+	arr := endpoints("../testdata/aspect_around.point")
 	fmt.Println(EndpointPrettyText(arr))
 }

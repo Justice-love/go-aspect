@@ -4,7 +4,6 @@ import (
 	"github.com/Justice-love/go-aspect/parse"
 	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
-	"sort"
 	"strings"
 )
 
@@ -18,29 +17,29 @@ func DoInjectCode(advices []*Advice) {
 		}
 	}
 	for _, v := range adviceMap {
-		sort.SliceStable(v.Aspect, func(i, j int) bool {
-			ai := v.Aspect[i]
-			aj := v.Aspect[j]
-			iline := ai.Point.mode.FunctionLine(ai)
-			jline := aj.Point.mode.FunctionLine(aj)
-			if iline == jline && ai.Point.mode == aj.Point.mode {
-				panic("duplicate")
-			}
-			return iline > jline
-		})
-		for _, one := range v.Aspect {
-			log.Debugf("inject:%s %s", one.Point.mode.Name(), one.Function.FuncName)
-			one.Point.mode.InjectFunc(v.Source, one)
+		funcInjects(v)
+		for _, one := range v.fi {
+			injectFun(v.Source, one)
 		}
-		for _, one := range v.Aspect {
-			imports := filterImports(one.Point)
-			if len(imports) == 0 {
-				continue
-			} else {
-				v.Source.InjectImport(v.Source, imports)
-			}
+		for _, one := range v.fi {
+			injectImports(v.Source, one)
 		}
+	}
+}
 
+func injectImports(source *parse.SourceStruct, fi *FunctionInject) {
+	for _, one := range fi.aspects {
+		imports := filterImports(one.Point)
+		if len(imports) != 0 {
+			source.InjectImport(source, imports)
+		}
+	}
+}
+
+func injectFun(source *parse.SourceStruct, fi *FunctionInject) {
+	for _, one := range fi.aspects {
+		log.Debugf("inject:%s %s", one.Point.mode.Name(), fi.f.FuncName)
+		one.Point.mode.InjectFunc(source, one)
 	}
 }
 
@@ -57,14 +56,15 @@ func filterImports(point *Point) (imports []*parse.ImportStruct) {
 
 type InjectInterface interface {
 	InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect)
-	FunctionLine(aspect *Aspect) int
 	Name() string
+	Sort() int
 }
 
 var injectMap = map[string]InjectInterface{
 	"before": BeforeInjectFile{},
 	"after":  AfterInjectFile{},
 	"defer":  DeferInjectFile{},
+	"around": AroundInjectFile{},
 }
 
 type DeferInjectFile struct {
@@ -89,14 +89,6 @@ func (a AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *As
 	util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), line)
 }
 
-func (a AfterInjectFile) FunctionLine(aspect *Aspect) int {
-	if aspect.Function.ReturnLine > 0 {
-		return aspect.Function.ReturnLine - 1
-	} else {
-		return aspect.Function.FuncEndLine
-	}
-}
-
 func (a AfterInjectFile) Name() string {
 	return "After"
 }
@@ -106,10 +98,6 @@ func (b BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *A
 		_ = parse.Contain(sourceStruct, one)
 	}
 	util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncLine)
-}
-
-func (b BeforeInjectFile) FunctionLine(aspect *Aspect) int {
-	return aspect.Function.FuncLine
 }
 
 func (b BeforeInjectFile) Name() string {
@@ -126,10 +114,6 @@ func (d DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *As
 	}()` + "\n"
 
 	util.InsertStringToFile(sourceStruct.Path, bindParam(code, aspect), aspect.Function.FuncLine)
-}
-
-func (d DeferInjectFile) FunctionLine(aspect *Aspect) int {
-	return aspect.Function.FuncLine
 }
 
 func (d DeferInjectFile) Name() string {
@@ -167,15 +151,15 @@ type AroundInjectFile struct {
 }
 
 func (a AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+	for _, one := range aspect.Point.imports {
+		_ = parse.Contain(sourceStruct, one)
+	}
 	name := util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
 	code := aspect.Function.FuncString + "\n"
-	if len(aspect.Function.Returns) > 0 {
-		code += "\treturn " + aroundTarget(aspect.Function, name) + "\n"
-	} else {
-		code += "\t" + aroundTarget(aspect.Function, name) + "\n"
-	}
+	invoke := aroundTarget(aspect.Function, name) + "\n"
+	code += strings.Replace(aspect.Point.code, "invoke()", invoke, 1)
 	code += "}\n"
-	util.Append(sourceStruct.Path, code)
+	util.Append(sourceStruct.Path, bindParam(code, aspect))
 }
 
 func aroundTarget(function *parse.FuncStruct, name string) string {
@@ -199,10 +183,22 @@ func targetParam(function *parse.FuncStruct) string {
 	return code
 }
 
-func (a AroundInjectFile) FunctionLine(*Aspect) int {
-	return int(^uint(0) >> 1)
-}
-
 func (a AroundInjectFile) Name() string {
 	return "Around"
+}
+
+func (d DeferInjectFile) Sort() int {
+	return 2
+}
+
+func (a AfterInjectFile) Sort() int {
+	return 1
+}
+
+func (b BeforeInjectFile) Sort() int {
+	return 3
+}
+
+func (a AroundInjectFile) Sort() int {
+	return 4
 }
