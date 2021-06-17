@@ -1,6 +1,7 @@
 package inject
 
 import (
+	"fmt"
 	"github.com/Justice-love/go-aspect/parse"
 	"testing"
 )
@@ -26,5 +27,11 @@ func TestAround(t *testing.T) {
 			},
 		},
 	}
-	AroundInjectFile{}.InjectFunc(s, a)
+	(&AroundInjectFile{}).InjectFunc(s, a)
+}
+
+func TestN(t *testing.T) {
+	s := []string{"1"}
+	a := s[1:]
+	fmt.Println(a)
 }

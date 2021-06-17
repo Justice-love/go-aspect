@@ -13,7 +13,7 @@ import (
 )
 
 type Point struct {
-	mode           InjectInterface
+	mode           CodeInjectInterface
 	injectPackage  string
 	injectFunc     string
 	injectReceiver *EndpointReceiver
@@ -50,7 +50,7 @@ func NewAdvice(source *parse.SourceStruct, function *parse.FuncStruct, point *Po
 	}
 }
 
-func NewPoint(mode InjectInterface, p string) *Point {
+func NewPoint(mode CodeInjectInterface, p string) *Point {
 	if mode == nil {
 		log.Fatalf("%s", "unsupported mode")
 	}

@@ -37,10 +37,9 @@ func injectImports(source *parse.SourceStruct, fi *FunctionInject) {
 }
 
 func injectFun(source *parse.SourceStruct, fi *FunctionInject) {
-	for _, one := range fi.aspects {
-		log.Debugf("inject:%s %s", one.Point.mode.Name(), fi.f.FuncName)
-		one.Point.mode.InjectFunc(source, one)
-	}
+	d := fi.aspects[0]
+	log.Debugf("inject:%s %s", d.Point.mode.Name(), fi.f.FuncName)
+	d.Point.mode.InjectFunc(source, d)
 }
 
 func filterImports(point *Point) (imports []*parse.ImportStruct) {
@@ -54,17 +53,17 @@ func filterImports(point *Point) (imports []*parse.ImportStruct) {
 	return
 }
 
-type InjectInterface interface {
+type CodeInjectInterface interface {
 	InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect)
 	Name() string
 	Sort() int
 }
 
-var injectMap = map[string]InjectInterface{
-	"before": BeforeInjectFile{},
-	"after":  AfterInjectFile{},
-	"defer":  DeferInjectFile{},
-	"around": AroundInjectFile{},
+var injectMap = map[string]CodeInjectInterface{
+	"before": &BeforeInjectFile{},
+	"after":  &AfterInjectFile{},
+	"defer":  &DeferInjectFile{},
+	"around": &AroundInjectFile{},
 }
 
 type DeferInjectFile struct {
@@ -76,35 +75,53 @@ type AfterInjectFile struct {
 type BeforeInjectFile struct {
 }
 
-func (a AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+func (a *AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
-	line := 0
-	if aspect.Function.ReturnLine > 0 {
-		line = aspect.Function.ReturnLine - 1
+	after := bindParam(aspect.Point.code+"\n", aspect)
+	in := `
+	defer func() {
+		` + after + `
+	}()` + "\n"
+	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	code := aspect.Function.FuncString + "\n"
+	code += in
+	if len(aspect.Function.Returns) > 0 {
+		code += "\treturn " + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
 	} else {
-		line = aspect.Function.FuncEndLine
+		code += "\t" + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
 	}
-	util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), line)
+	code += "}"
+	util.Append(sourceStruct.Path, code)
 }
 
-func (a AfterInjectFile) Name() string {
+func (a *AfterInjectFile) Name() string {
 	return "After"
 }
 
-func (b BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+func (b *BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
-	util.InsertStringToFile(sourceStruct.Path, bindParam(aspect.Point.code+"\n", aspect), aspect.Function.FuncLine)
+	before := bindParam(aspect.Point.code+"\n", aspect)
+	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	code := aspect.Function.FuncString + "\n"
+	code += before
+	if len(aspect.Function.Returns) > 0 {
+		code += "\treturn " + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+	} else {
+		code += "\t" + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+	}
+	code += "}"
+	util.Append(sourceStruct.Path, code)
 }
 
-func (b BeforeInjectFile) Name() string {
+func (b *BeforeInjectFile) Name() string {
 	return "Before"
 }
 
-func (d DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+func (d *DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
@@ -116,7 +133,7 @@ func (d DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *As
 	util.InsertStringToFile(sourceStruct.Path, bindParam(code, aspect), aspect.Function.FuncLine)
 }
 
-func (d DeferInjectFile) Name() string {
+func (d *DeferInjectFile) Name() string {
 	return "Defer"
 }
 
@@ -150,16 +167,18 @@ func bindParam(code string, aspect *Aspect) string {
 type AroundInjectFile struct {
 }
 
-func (a AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
+func (a *AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
-	name := util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	invoke := aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+	around := strings.Replace(aspect.Point.code, "invoke()", invoke, 1)
+	around = bindParam(around, aspect)
+	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
 	code := aspect.Function.FuncString + "\n"
-	invoke := aroundTarget(aspect.Function, name) + "\n"
-	code += strings.Replace(aspect.Point.code, "invoke()", invoke, 1)
-	code += "}\n"
-	util.Append(sourceStruct.Path, bindParam(code, aspect))
+	code += around
+	code += "\n}"
+	util.Append(sourceStruct.Path, code)
 }
 
 func aroundTarget(function *parse.FuncStruct, name string) string {
@@ -183,22 +202,22 @@ func targetParam(function *parse.FuncStruct) string {
 	return code
 }
 
-func (a AroundInjectFile) Name() string {
+func (a *AroundInjectFile) Name() string {
 	return "Around"
 }
 
-func (d DeferInjectFile) Sort() int {
-	return 2
-}
-
-func (a AfterInjectFile) Sort() int {
+func (d *DeferInjectFile) Sort() int {
 	return 1
 }
 
-func (b BeforeInjectFile) Sort() int {
-	return 3
+func (a *AfterInjectFile) Sort() int {
+	return 4
 }
 
-func (a AroundInjectFile) Sort() int {
-	return 4
+func (b *BeforeInjectFile) Sort() int {
+	return 2
+}
+
+func (a *AroundInjectFile) Sort() int {
+	return 3
 }

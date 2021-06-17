@@ -23,8 +23,8 @@ func funcInjects(advice *Advice) {
 	}
 	for _, v := range fm {
 		sort.SliceStable(v.aspects, func(i, j int) bool {
-			if v.aspects[i].Point.mode == v.aspects[j].Point.mode {
-				log.Fatal("duplicate mod")
+			if v.aspects[i].Function == v.aspects[j].Function {
+				log.Fatal("duplicate func inject")
 			}
 			return v.aspects[i].Point.mode.Sort() < v.aspects[j].Point.mode.Sort()
 		})
