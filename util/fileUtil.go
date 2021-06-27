@@ -98,11 +98,11 @@ func Append(path, code string) {
 	}
 	buffer := bytes.Buffer{}
 	buffer.Write(bs)
-	buffer.WriteString("\n")
+	buffer.WriteString("\n\n")
 	buffer.WriteString(code)
 	_ = ioutil.WriteFile(path, buffer.Bytes(), 0644)
 }
 
 func InitFile(path, p string) {
-	_ = ioutil.WriteFile(path, []byte("package "+p+"\n\n\n"), 0644)
+	_ = ioutil.WriteFile(path, []byte("package "+p+"\n"), 0644)
 }

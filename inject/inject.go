@@ -47,8 +47,7 @@ func injectImports(advice *Advice) {
 	for _, one := range importMap {
 		str += fmt.Sprint("import\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
 	}
-	str += "\n"
-	util.InsertStringToFile(advice.Source.XgcPath, str, 2)
+	util.Append(advice.Source.XgcPath, str)
 }
 
 func injectFun(source *parse.SourceStruct, aspect *Aspect) {
@@ -94,7 +93,7 @@ func (a *AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *A
 		` + after + `
 	}()` + "\n"
 	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
-	code := aspect.Function.FuncString + "\n"
+	code := SourceFunctionStr(aspect.Function) + "\n"
 	code += in
 	if len(aspect.Function.Returns) > 0 {
 		code += "\treturn " + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
@@ -115,7 +114,7 @@ func (b *BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 	}
 	before := bindParam(aspect.Point.code+"\n", aspect)
 	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
-	code := aspect.Function.FuncString + "\n"
+	code := SourceFunctionStr(aspect.Function) + "\n"
 	code += before
 	if len(aspect.Function.Returns) > 0 {
 		code += "\treturn " + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
@@ -155,14 +154,16 @@ func (a *AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 	around := strings.Replace(aspect.Point.code, "invoke()", invoke, 1)
 	around = bindParam(around, aspect)
 	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
-	code := aspect.Function.FuncString + "\n"
+	code := SourceFunctionStr(aspect.Function) + "\n"
 	code += around
 	code += "\n}"
 	util.Append(sourceStruct.XgcPath, code)
 }
 
 func aroundTarget(function *parse.FuncStruct, name string) string {
-	if function.Receiver != nil {
+	if function.Receiver != nil && function.Receiver.Alias == "" {
+		return "x." + name + targetParam(function)
+	} else if function.Receiver != nil {
 		return function.Receiver.Alias + "." + name + targetParam(function)
 	} else {
 		return name + targetParam(function)
@@ -184,4 +185,16 @@ func targetParam(function *parse.FuncStruct) string {
 
 func (a *AroundInjectFile) Name() string {
 	return "Around"
+}
+
+func SourceFunctionStr(f *parse.FuncStruct) string {
+	if (f.Receiver != nil && f.Receiver.Alias != "") || f.Receiver == nil {
+		return f.FuncString
+	}
+	r := f.Receiver
+	if r.Pointer {
+		return strings.Replace(f.FuncString, "*"+r.Receiver, "x *"+r.Receiver, 1)
+	} else {
+		return strings.Replace(f.FuncString, r.Receiver, "x "+r.Receiver, 1)
+	}
 }
