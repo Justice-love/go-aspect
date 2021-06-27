@@ -70,17 +70,12 @@ func filterImports(point *Point) (imports []*parse.ImportStruct) {
 type CodeInjectInterface interface {
 	InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect)
 	Name() string
-	Sort() int
 }
 
 var injectMap = map[string]CodeInjectInterface{
 	"before": &BeforeInjectFile{},
 	"after":  &AfterInjectFile{},
-	//"defer":  &DeferInjectFile{},
 	"around": &AroundInjectFile{},
-}
-
-type DeferInjectFile struct {
 }
 
 type AfterInjectFile struct {
@@ -133,22 +128,6 @@ func (b *BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 
 func (b *BeforeInjectFile) Name() string {
 	return "Before"
-}
-
-func (d *DeferInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *Aspect) {
-	for _, one := range aspect.Point.imports {
-		_ = parse.Contain(sourceStruct, one)
-	}
-	code := `
-	defer func() {
-		` + aspect.Point.code + `
-	}()` + "\n"
-
-	util.InsertStringToFile(sourceStruct.Path, bindParam(code, aspect), aspect.Function.FuncLine)
-}
-
-func (d *DeferInjectFile) Name() string {
-	return "Defer"
 }
 
 func bindParam(code string, aspect *Aspect) string {
@@ -205,20 +184,4 @@ func targetParam(function *parse.FuncStruct) string {
 
 func (a *AroundInjectFile) Name() string {
 	return "Around"
-}
-
-func (d *DeferInjectFile) Sort() int {
-	return 1
-}
-
-func (a *AfterInjectFile) Sort() int {
-	return 4
-}
-
-func (b *BeforeInjectFile) Sort() int {
-	return 2
-}
-
-func (a *AroundInjectFile) Sort() int {
-	return 3
 }

@@ -64,7 +64,7 @@ func NewFuncStruct(name string, line *int) *FuncStruct {
 
 func NewSourceStruct(path string) *SourceStruct {
 	xgc_path := fmt.Sprint(strings.TrimRight(path, ".go"), "_xgc.go")
-	return &SourceStruct{Path: path, XgcPath: xgc_path, InjectImport: InlineImportInject}
+	return &SourceStruct{Path: path, XgcPath: xgc_path}
 }
 
 func SourceParse(sourceFile string) *SourceStruct {
@@ -96,7 +96,6 @@ func SourceParse(sourceFile string) *SourceStruct {
 			source.Imports = append(source.Imports, imr...)
 			if inline {
 				source.ImportLine = line
-				source.InjectImport = InlineImportInject
 			} else {
 				line += len(imr) + 1
 				source.ImportLine = line - 1
@@ -114,7 +113,6 @@ func SourceParse(sourceFile string) *SourceStruct {
 	}
 	if source.Imports == nil {
 		source.ImportLine = 2
-		source.InjectImport = InlineImportInject
 	}
 	return source
 }
@@ -371,26 +369,6 @@ func ImportStr(str string) *ImportStruct {
 func endTerm(s string) string {
 	arr := strings.Split(s, "/")
 	return arr[len(arr)-1]
-}
-
-func InlineImportInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
-	str := ""
-	for _, one := range imports {
-		str += fmt.Sprint("import\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
-	}
-	str += "\n"
-	util.InsertStringToFile(sourceStruct.XgcPath, str, 2)
-}
-
-func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
-	str := ""
-	for _, one := range imports {
-		if !Contain(sourceStruct, one) {
-			str += fmt.Sprint("\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
-		}
-	}
-	str += "\n"
-	util.InsertStringToFile(sourceStruct.Path, str, sourceStruct.ImportLine)
 }
 
 func Contain(sourceStruct *SourceStruct, i *ImportStruct) bool {
