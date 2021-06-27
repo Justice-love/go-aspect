@@ -35,7 +35,6 @@ type EndpointReceiver struct {
 type Advice struct {
 	Source *parse.SourceStruct
 	Aspect []*Aspect
-	fi     []*FunctionInject
 }
 
 func NewAdvice(source *parse.SourceStruct, function *parse.FuncStruct, point *Point) *Advice {

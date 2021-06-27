@@ -1,9 +1,11 @@
 package inject
 
 import (
+	"fmt"
 	"github.com/Justice-love/go-aspect/parse"
 	"github.com/Justice-love/go-aspect/util"
 	log "github.com/sirupsen/logrus"
+	"sort"
 	"strings"
 )
 
@@ -16,30 +18,42 @@ func DoInjectCode(advices []*Advice) {
 			adviceMap[one.Source] = one
 		}
 	}
-	for _, v := range adviceMap {
-		funcInjects(v)
-		for _, one := range v.fi {
-			injectFun(v.Source, one)
+	for k, v := range adviceMap {
+		sort.Slice(v.Aspect, func(i, j int) bool {
+			ai := v.Aspect[i]
+			aj := v.Aspect[j]
+			if ai.Function == aj.Function {
+				log.Fatal("duplicate function aspect")
+			}
+			return ai.Function.FuncLine > aj.Function.FuncLine
+		})
+		util.InitFile(k.XgcPath, k.PackageStr)
+		for _, one := range v.Aspect {
+			injectFun(k, one)
 		}
-		for _, one := range v.fi {
-			injectImports(v.Source, one)
-		}
+		injectImports(v)
 	}
 }
 
-func injectImports(source *parse.SourceStruct, fi *FunctionInject) {
-	for _, one := range fi.aspects {
+func injectImports(advice *Advice) {
+	importMap := make(map[string]*parse.ImportStruct)
+	for _, one := range advice.Aspect {
 		imports := filterImports(one.Point)
-		if len(imports) != 0 {
-			source.InjectImport(source, imports)
+		for _, i := range imports {
+			importMap[i.ImportString] = i
 		}
 	}
+	str := ""
+	for _, one := range importMap {
+		str += fmt.Sprint("import\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
+	}
+	str += "\n"
+	util.InsertStringToFile(advice.Source.XgcPath, str, 2)
 }
 
-func injectFun(source *parse.SourceStruct, fi *FunctionInject) {
-	d := fi.aspects[0]
-	log.Debugf("inject:%s %s", d.Point.mode.Name(), fi.f.FuncName)
-	d.Point.mode.InjectFunc(source, d)
+func injectFun(source *parse.SourceStruct, aspect *Aspect) {
+	log.Debugf("inject:%s %s", aspect.Point.mode.Name(), aspect.Function.FuncName)
+	aspect.Point.mode.InjectFunc(source, aspect)
 }
 
 func filterImports(point *Point) (imports []*parse.ImportStruct) {
@@ -62,7 +76,7 @@ type CodeInjectInterface interface {
 var injectMap = map[string]CodeInjectInterface{
 	"before": &BeforeInjectFile{},
 	"after":  &AfterInjectFile{},
-	"defer":  &DeferInjectFile{},
+	//"defer":  &DeferInjectFile{},
 	"around": &AroundInjectFile{},
 }
 
@@ -93,7 +107,7 @@ func (a *AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *A
 		code += "\t" + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
 	}
 	code += "}"
-	util.Append(sourceStruct.Path, code)
+	util.Append(sourceStruct.XgcPath, code)
 }
 
 func (a *AfterInjectFile) Name() string {
@@ -114,7 +128,7 @@ func (b *BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 		code += "\t" + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
 	}
 	code += "}"
-	util.Append(sourceStruct.Path, code)
+	util.Append(sourceStruct.XgcPath, code)
 }
 
 func (b *BeforeInjectFile) Name() string {
@@ -148,19 +162,6 @@ func bindParam(code string, aspect *Aspect) string {
 		}
 		code = strings.ReplaceAll(code, "{{"+pointParam.Name+"}}", p.Name)
 	}
-	for _, one := range aspect.Point.imports {
-		if one.SourceContain && one.SourceTag != one.ImportTag {
-			e := one.ImportEndTerm
-			if one.ImportTag != "" {
-				e = one.ImportTag
-			}
-			n := one.SourceTag
-			if one.SourceTag == "" {
-				n = one.ImportEndTerm
-			}
-			code = strings.ReplaceAll(code, e+".", n+".")
-		}
-	}
 	return code
 }
 
@@ -178,7 +179,7 @@ func (a *AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 	code := aspect.Function.FuncString + "\n"
 	code += around
 	code += "\n}"
-	util.Append(sourceStruct.Path, code)
+	util.Append(sourceStruct.XgcPath, code)
 }
 
 func aroundTarget(function *parse.FuncStruct, name string) string {

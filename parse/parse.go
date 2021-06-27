@@ -13,6 +13,7 @@ import (
 
 type SourceStruct struct {
 	Path         string
+	XgcPath      string
 	PackageStr   string
 	Imports      []*ImportStruct
 	Funcs        []*FuncStruct
@@ -62,7 +63,8 @@ func NewFuncStruct(name string, line *int) *FuncStruct {
 }
 
 func NewSourceStruct(path string) *SourceStruct {
-	return &SourceStruct{Path: path, InjectImport: MultiLineInject}
+	xgc_path := fmt.Sprint(strings.TrimRight(path, ".go"), "_xgc.go")
+	return &SourceStruct{Path: path, XgcPath: xgc_path, InjectImport: InlineImportInject}
 }
 
 func SourceParse(sourceFile string) *SourceStruct {
@@ -374,12 +376,10 @@ func endTerm(s string) string {
 func InlineImportInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
 	str := ""
 	for _, one := range imports {
-		if !Contain(sourceStruct, one) {
-			str += fmt.Sprint("import\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
-		}
+		str += fmt.Sprint("import\t", one.ImportTag, " ", "\"", one.ImportString, "\"\n")
 	}
 	str += "\n"
-	util.InsertStringToFile(sourceStruct.Path, str, sourceStruct.ImportLine)
+	util.InsertStringToFile(sourceStruct.XgcPath, str, 2)
 }
 
 func MultiLineInject(sourceStruct *SourceStruct, imports []*ImportStruct) {
