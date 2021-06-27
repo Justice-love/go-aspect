@@ -28,10 +28,10 @@ func DoInjectCode(advices []*Advice) {
 			return ai.Function.FuncLine > aj.Function.FuncLine
 		})
 		util.InitFile(k.XgcPath, k.PackageStr)
+		injectImports(v)
 		for _, one := range v.Aspect {
 			injectFun(k, one)
 		}
-		injectImports(v)
 	}
 }
 
