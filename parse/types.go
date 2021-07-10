@@ -91,8 +91,8 @@ func structFunc(str string) (param *ParamStruct) {
 		param = &ParamStruct{Name: kvs[0], ParamType: t}
 		param.Pointer = p
 	} else {
-		t, p := CheckPointer(types[1])
-		param = &ParamStruct{Name: kvs[0], ParamType: t}
+		_, p := CheckPointer(types[0])
+		param = &ParamStruct{Name: kvs[0], ParamType: types[1]}
 		param.Pointer = p
 	}
 	param.StructType = structFunc

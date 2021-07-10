@@ -56,5 +56,10 @@ func TestImportParse(t *testing.T) {
 		line := 10
 		is := funcInline(i, &line)
 		a.NotNil(is)
+		a.Equal(1, len(is.Params))
+		a.True(is.Params[0].Pointer)
+		a.Equal("T", is.Params[0].ParamType)
+		a.Equal("t", is.Params[0].Name)
+		a.Equal("TestImportParse", is.FuncName)
 	})
 }
