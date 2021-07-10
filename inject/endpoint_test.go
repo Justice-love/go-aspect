@@ -21,3 +21,9 @@ func TestOnePoint(t *testing.T) {
 	a.NotNil(p)
 	a.Equal(&AfterInjectFile{}, p.mode)
 }
+
+func TestOneOtherPoint(t *testing.T) {
+	point := "\tsample.AfterPrint({{c}})\n}"
+	reader := bufio.NewReader(strings.NewReader(point))
+	_ = onePoint("point other(main.Do(c Context)) {", reader)
+}
