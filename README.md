@@ -51,7 +51,7 @@ point           before(test.Do(c Context)) {
 1. 织入方式：目前支持 before，after， around三种方式
 2. 对应函数：包名.[方法的接收者].函数名，方法接收者如果没有可以不填
     * 如果织入的代码中使用到了接收者，接收者的参数为去掉*前缀的变量，如test.*X.Inject中，使用X，并且需要使用{{X}}占位符表明接收者
-3. 方法参数：需要按照代织入的方法参数顺序进行编写，现支持的参数类型，struct（使用对应的类型，不需要带前缀），map，slice，array，func，interface。
+3. 方法参数：需要按照代织入的方法参数顺序进行编写，现支持的参数类型，struct（使用对应的类型，不需要带前缀），map，slice，array，func，interface，chan（channel）。
     * `point after(test.*X.Inject(c Context, m map, s slice, i interface, f func)) {`
     * 如果织入的代码中有使用到对应的参数，请使用{{c}}这样的占位符表明
 
