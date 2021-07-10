@@ -50,4 +50,11 @@ func TestImportParse(t *testing.T) {
 		is, _ := importParse(reader, "import \"bytes\"")
 		a.Equal(1, len(is))
 	})
+	t.Run("function inline", func(t *testing.T) {
+		a := assert.New(t)
+		i := "func TestImportParse(t *testing.T) {"
+		line := 10
+		is := funcInline(i, &line)
+		a.NotNil(is)
+	})
 }
