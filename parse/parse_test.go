@@ -41,6 +41,16 @@ func TestFunction(t *testing.T) {
 		fu := funcMultiLine(reader, "func funcMultiLine(", &line)
 		assert.NotNil(t, fu, "function parse error")
 	})
+	t.Run("multi return", func(t *testing.T) {
+		f := "\tremain string) {"
+		reader := bufio.NewReader(strings.NewReader(f))
+		line := 33
+		fu := funcMultiLine(reader, "func oneReturn(str string) (returnStr, ", &line)
+		assert.NotNil(t, fu, "function parse error")
+		assert.Equal(t, 2, len(fu.Returns))
+		assert.Equal(t, StructReturn, fu.Returns[0])
+		assert.Equal(t, StructReturn, fu.Returns[1])
+	})
 }
 
 func TestImportParse(t *testing.T) {

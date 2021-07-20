@@ -30,7 +30,8 @@ var ReturnNameMap = map[ReturnType]string{
 	ChanReturn:      "chan",
 }
 
-func oneReturn(str string) (returnStr, remain string) {
+func oneReturn(str string) (returnStr,
+	remain string) {
 	str = strings.TrimSpace(str)
 	if len(str) == 0 {
 		return
