@@ -28,10 +28,12 @@ func TestSourceParse(t *testing.T) {
 }
 
 func TestInlineFunction(t *testing.T) {
-	f := "func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {"
-	line := 10
-	fu := funcInline(f, &line)
-	fmt.Println(fu)
+	t.Run("inline function", func(t *testing.T) {
+		f := "func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {"
+		line := 10
+		fu := funcInline(f, &line)
+		assert.NotNil(t, fu)
+	})
 }
 
 func TestImportParse(t *testing.T) {
