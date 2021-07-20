@@ -27,12 +27,19 @@ func TestSourceParse(t *testing.T) {
 	fmt.Println(SourcePrettyText([]*SourceStruct{source}))
 }
 
-func TestInlineFunction(t *testing.T) {
+func TestFunction(t *testing.T) {
 	t.Run("inline function", func(t *testing.T) {
 		f := "func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {"
 		line := 10
 		fu := funcInline(f, &line)
-		assert.NotNil(t, fu)
+		assert.NotNil(t, fu, "function parse error")
+	})
+	t.Run("multi line function", func(t *testing.T) {
+		f := "\treader *bufio.Reader,\n\tstr string,\n\tline *int) *FuncStruct {"
+		reader := bufio.NewReader(strings.NewReader(f))
+		line := 160
+		fu := funcMultiLine(reader, "func funcMultiLine(", &line)
+		assert.NotNil(t, fu, "function parse error")
 	})
 }
 
