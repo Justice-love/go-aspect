@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ type Point struct {
 	mode           CodeInjectInterface
 	injectPackage  string
 	injectFunc     string
+	injectFuncRegx *regexp.Regexp
 	injectReceiver *EndpointReceiver
 	code           string
 	imports        []*parse.ImportStruct
@@ -109,8 +111,10 @@ func onePoint(str string, reader *bufio.Reader) (point *Point) {
 	point = NewPoint(injectMap[fs[0]], funs[0])
 	if len(funs) == 2 {
 		point.injectFunc = funs[1]
+		point.injectFuncRegx = funcNameRegx(funs[1])
 	} else {
 		point.injectFunc = funs[2]
+		point.injectFuncRegx = funcNameRegx(funs[2])
 		point.injectReceiver = endpointReceiver(funs[1])
 	}
 	if len(fs) == 4 {
