@@ -166,7 +166,7 @@ tag:
 		}
 	tag2:
 		for _, f := range sourceStruct.Funcs {
-			if p.injectFuncRegx.MatchString(f.FuncName) {
+			if !p.injectFuncRegx.MatchString(f.FuncName) {
 				continue
 			}
 			if p.injectReceiver == nil && f.Receiver != nil {
