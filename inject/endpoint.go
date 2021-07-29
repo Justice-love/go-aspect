@@ -159,14 +159,15 @@ func endpointReceiver(s string) *EndpointReceiver {
 }
 
 func Match(sourceStruct *parse.SourceStruct, points []*Point) (advices []*Advice) {
-tag:
 	for _, p := range points {
 		if p.injectPackage != sourceStruct.PackageStr {
 			return nil
 		}
-	tag2:
+	tag:
 		for _, f := range sourceStruct.Funcs {
+			log.Info(f.FuncName)
 			if !p.injectFuncRegx.MatchString(f.FuncName) {
+				log.Error(f.FuncName)
 				continue
 			}
 			if p.injectReceiver == nil && f.Receiver != nil {
@@ -189,12 +190,12 @@ tag:
 				paramFunc := reflect.ValueOf(param.StructType)
 				pointParamFunc := reflect.ValueOf(pp.StructType)
 				if param.ParamType != pp.ParamType || paramFunc.Pointer() != pointParamFunc.Pointer() || param.Pointer != pp.Pointer {
-					continue tag2
+					continue tag
 				}
 			}
 			advice := NewAdvice(sourceStruct, f, p)
 			advices = append(advices, advice)
-			continue tag
+			continue
 		}
 	}
 	return
