@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -26,4 +27,12 @@ func TestOneOtherPoint(t *testing.T) {
 	point := "\tsample.AfterPrint({{c}})\n}"
 	reader := bufio.NewReader(strings.NewReader(point))
 	_ = onePoint("point other(main.Do(c Context)) {", reader)
+}
+
+func TestFunctionNameRegx(t *testing.T) {
+	name := "TestRegx"
+	re := "Test*"
+
+	regx, _ := regexp.Compile(re)
+	assert.True(t, regx.MatchString(name))
 }
