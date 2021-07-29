@@ -165,9 +165,7 @@ func Match(sourceStruct *parse.SourceStruct, points []*Point) (advices []*Advice
 		}
 	tag:
 		for _, f := range sourceStruct.Funcs {
-			log.Info(f.FuncName)
 			if !p.injectFuncRegx.MatchString(f.FuncName) {
-				log.Error(f.FuncName)
 				continue
 			}
 			if p.injectReceiver == nil && f.Receiver != nil {
