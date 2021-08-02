@@ -177,9 +177,6 @@ func Match(sourceStruct *parse.SourceStruct, points []*Point) (advices []*Advice
 			if f.Receiver != nil && p.injectReceiver.Receiver != f.Receiver.Receiver {
 				continue
 			}
-			if f.Receiver != nil && p.injectReceiver.Receiver == f.Receiver.Receiver && p.injectReceiver.Pointer != f.Receiver.Pointer {
-				continue
-			}
 			if len(f.Params) != len(p.params) {
 				continue
 			}
