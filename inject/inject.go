@@ -23,7 +23,7 @@ func DoInjectCode(advices []*Advice) {
 			ai := v.Aspect[i]
 			aj := v.Aspect[j]
 			if ai.Function == aj.Function {
-				log.Fatal("duplicate function aspect")
+				log.Panic("duplicate function aspect")
 			}
 			return ai.Function.FuncLine > aj.Function.FuncLine
 		})

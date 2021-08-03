@@ -3,8 +3,29 @@ package inject
 import (
 	"fmt"
 	"github.com/Justice-love/go-aspect/parse"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
+
+func TestDuplicate(t *testing.T) {
+	function := &parse.FuncStruct{}
+	advice := []*Advice{
+		{
+			Source: &parse.SourceStruct{},
+			Aspect: []*Aspect{
+				{
+					Function: function,
+				},
+				{
+					Function: function,
+				},
+			},
+		},
+	}
+	assert.Panics(t, func() {
+		DoInjectCode(advice)
+	})
+}
 
 func TestAround(t *testing.T) {
 	s := &parse.SourceStruct{
