@@ -1,7 +1,11 @@
+.PHONY: build
 PKGS := $(shell go list ./...)
-install:
-	@go mod vendor
+
+install: build
 	@go install xgc.go
 
 fmt:
 	go fmt $(PKGS)
+
+build:
+	@go mod vendor
