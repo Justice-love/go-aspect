@@ -40,6 +40,12 @@ type FuncStruct struct {
 	ReturnLine  int
 	Returns     []ReturnType
 	NameLine    int
+	LineString  []*FuncLine
+}
+
+type FuncLine struct {
+	LineString string
+	LineNum    int
 }
 
 type ReceiverStruct struct {
@@ -158,7 +164,9 @@ func funcParse(reader *bufio.Reader, str string, line *int) (f *FuncStruct) {
 }
 
 func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
+	fls := make([]*FuncLine, 0)
 	funcStr := str
+	fls = append(fls, &FuncLine{LineString: str, LineNum: *line})
 	fs := make(map[int]string)
 	for {
 		content, _, err := reader.ReadLine()
@@ -169,12 +177,14 @@ func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 		contentStr := string(content)
 		fs[*line] = contentStr
 		funcStr += contentStr
+		fls = append(fls, &FuncLine{LineString: contentStr, LineNum: *line})
 		if strings.HasSuffix(strings.TrimSpace(contentStr), "{") {
 			break
 		}
 	}
 	f := funcInline(funcStr, line)
 	f.FuncString = funcStr
+	f.LineString = fls
 	for k, v := range fs {
 		if strings.Contains(v, f.FuncName) {
 			f.NameLine = k
@@ -185,6 +195,7 @@ func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 }
 
 func funcInline(str string, line *int) (fun *FuncStruct) {
+	basic := str
 	str = strings.TrimSpace(strings.TrimLeft(str, "func"))
 	var (
 		receiver *ReceiverStruct
@@ -203,6 +214,10 @@ func funcInline(str string, line *int) (fun *FuncStruct) {
 	fun.Params = params
 	fun.Returns = returns
 	fun.NameLine = *line
+	fun.LineString = []*FuncLine{{
+		LineString: basic,
+		LineNum:    *line,
+	}}
 	return
 }
 

@@ -60,6 +60,10 @@ func SplitSpace(str string) []string {
 	return regx.Split(strings.TrimSpace(str), -1)
 }
 
+func ReplaceReceiver() {
+
+}
+
 func ReplaceFunctionName(path, old string, line int) string {
 	f, err := os.Open(path)
 	if err != nil {
