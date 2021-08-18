@@ -1,6 +1,7 @@
 package inject
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/Justice-love/go-aspect/parse"
 	"github.com/Justice-love/go-aspect/util"
@@ -75,6 +76,7 @@ var injectMap = map[string]CodeInjectInterface{
 	"before": &BeforeInjectFile{},
 	"after":  &AfterInjectFile{},
 	"around": &AroundInjectFile{},
+	"test":   &TestInjectFile{},
 }
 
 type AfterInjectFile struct {
@@ -170,6 +172,10 @@ func aroundTarget(function *parse.FuncStruct, name string) string {
 	}
 }
 
+func aroundTargetWithNewReceiver(function *parse.FuncStruct, name string) string {
+	return ReceiverNew(function) + name + targetParam(function)
+}
+
 func targetParam(function *parse.FuncStruct) string {
 	code := "("
 	for i, one := range function.Params {
@@ -196,5 +202,36 @@ func SourceFunctionStr(f *parse.FuncStruct) string {
 		return strings.Replace(f.FuncString, "*"+r.Receiver, "x *"+r.Receiver, 1)
 	} else {
 		return strings.Replace(f.FuncString, r.Receiver, "x "+r.Receiver, 1)
+	}
+}
+
+func SourceStructStr(f *parse.FuncStruct) string {
+	var buffer bytes.Buffer
+	typeName := util.Prefix + f.FuncName
+	if f.Receiver != nil {
+		typeName = util.Prefix + f.Receiver.Receiver
+	}
+	buffer.WriteString("type ")
+	buffer.WriteString(typeName)
+	buffer.WriteString(" struct{\n")
+	if f.Receiver != nil {
+		buffer.WriteString("\t")
+		if f.Receiver.Pointer {
+			buffer.WriteString("*")
+		}
+		buffer.WriteString(f.Receiver.Receiver)
+		buffer.WriteString("\n")
+	}
+	buffer.WriteString("}\n")
+	return buffer.String()
+}
+
+func ReceiverNew(f *parse.FuncStruct) string {
+	if f.Receiver != nil && f.Receiver.Alias != "" {
+		return fmt.Sprint("(&", util.Prefix, f.Receiver.Receiver, "{", f.Receiver.Alias, "}).")
+	} else if f.Receiver != nil {
+		return fmt.Sprint("(&", util.Prefix, f.Receiver.Receiver, "{", "x", "}).")
+	} else {
+		return fmt.Sprint("(&", util.Prefix, f.FuncName, "{", "}).")
 	}
 }

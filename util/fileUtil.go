@@ -3,6 +3,7 @@ package util
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"io/ioutil"
@@ -60,8 +61,68 @@ func SplitSpace(str string) []string {
 	return regx.Split(strings.TrimSpace(str), -1)
 }
 
-func ReplaceReceiver() {
+func ReplaceReceiver(path, old string, line int) {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	reader := bufio.NewReader(f)
+	l := 1
+	buffer := bytes.Buffer{}
+	for {
+		content, _, err := reader.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		contentStr := string(content)
+		if l == line && !strings.Contains(contentStr, Prefix+old) {
+			buffer.WriteString(strings.Replace(contentStr, old, Prefix+old, 1) + "\n")
+		} else {
+			buffer.WriteString(contentStr + "\n")
+		}
+		l += 1
+	}
+	_ = ioutil.WriteFile(path, buffer.Bytes(), 0644)
+}
 
+func AddReceiver(path, old string, line int) {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	reader := bufio.NewReader(f)
+	l := 1
+	buffer := bytes.Buffer{}
+	for {
+		content, _, err := reader.ReadLine()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatal(err)
+		}
+		contentStr := string(content)
+		if l == line && !strings.Contains(contentStr, Prefix+old) {
+			buffer.WriteString(strings.Replace(contentStr, old, withReceiver(old), 1) + "\n")
+		} else {
+			buffer.WriteString(contentStr + "\n")
+		}
+		l += 1
+	}
+	_ = ioutil.WriteFile(path, buffer.Bytes(), 0644)
+}
+
+func withReceiver(old string) string {
+	return fmt.Sprint("(x *", Prefix, old, ") ", old)
 }
 
 func ReplaceFunctionName(path, old string, line int) string {
