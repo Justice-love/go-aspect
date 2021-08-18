@@ -46,7 +46,13 @@ type FuncStruct struct {
 type FuncLine struct {
 	LineString string
 	LineNum    int
+	Types      int
 }
+
+const (
+	ReceiverLine     = 1 << 1
+	FunctionNameLine = 1 << 2
+)
 
 type ReceiverStruct struct {
 	Pointer  bool
@@ -191,6 +197,14 @@ func funcMultiLine(reader *bufio.Reader, str string, line *int) *FuncStruct {
 			break
 		}
 	}
+	for _, l := range fls {
+		if strings.Contains(l.LineString, f.FuncName) {
+			l.Types = l.Types | FunctionNameLine
+		}
+		if f.Receiver != nil && strings.Contains(l.LineString, f.Receiver.Receiver) {
+			l.Types = l.Types | ReceiverLine
+		}
+	}
 	return f
 }
 
@@ -217,6 +231,7 @@ func funcInline(str string, line *int) (fun *FuncStruct) {
 	fun.LineString = []*FuncLine{{
 		LineString: basic,
 		LineNum:    *line,
+		Types:      0 | FunctionNameLine | ReceiverLine,
 	}}
 	return
 }
@@ -464,4 +479,22 @@ func SourcePrettyText(
 		}
 	}
 	return buff.String()
+}
+
+func FunctionNameLineNum(lines []*FuncLine) int {
+	for _, l := range lines {
+		if l.Types&FunctionNameLine == FunctionNameLine {
+			return l.LineNum
+		}
+	}
+	return 0
+}
+
+func FunctionReceiverLineNum(lines []*FuncLine) int {
+	for _, l := range lines {
+		if l.Types&ReceiverLine == ReceiverLine {
+			return l.LineNum
+		}
+	}
+	return 0
 }
