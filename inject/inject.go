@@ -89,18 +89,26 @@ func (a *AfterInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *A
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
+
+	codeStruct := SourceStructStr(aspect.Function)
+	util.Append(sourceStruct.XgcPath, codeStruct)
+
 	after := bindParam(aspect.Point.code+"\n", aspect)
 	in := `
 	defer func() {
 		` + after + `
 	}()` + "\n"
-	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	if aspect.Function.Receiver != nil {
+		util.ReplaceReceiver(sourceStruct.Path, aspect.Function.Receiver.Receiver, parse.FunctionReceiverLineNum(aspect.Function.LineString))
+	} else {
+		util.AddReceiver(sourceStruct.Path, aspect.Function.FuncName, parse.FunctionNameLineNum(aspect.Function.LineString))
+	}
 	code := SourceFunctionStr(aspect.Function) + "\n"
 	code += in
 	if len(aspect.Function.Returns) > 0 {
-		code += "\treturn " + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+		code += "\treturn " + aroundTargetWithNewReceiver(aspect.Function, aspect.Function.FuncName) + "\n"
 	} else {
-		code += "\t" + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+		code += "\t" + aroundTargetWithNewReceiver(aspect.Function, aspect.Function.FuncName) + "\n"
 	}
 	code += "}"
 	util.Append(sourceStruct.XgcPath, code)
@@ -114,14 +122,22 @@ func (b *BeforeInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
+
+	codeStruct := SourceStructStr(aspect.Function)
+	util.Append(sourceStruct.XgcPath, codeStruct)
+
 	before := bindParam(aspect.Point.code+"\n", aspect)
-	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	if aspect.Function.Receiver != nil {
+		util.ReplaceReceiver(sourceStruct.Path, aspect.Function.Receiver.Receiver, parse.FunctionReceiverLineNum(aspect.Function.LineString))
+	} else {
+		util.AddReceiver(sourceStruct.Path, aspect.Function.FuncName, parse.FunctionNameLineNum(aspect.Function.LineString))
+	}
 	code := SourceFunctionStr(aspect.Function) + "\n"
 	code += before
 	if len(aspect.Function.Returns) > 0 {
-		code += "\treturn " + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+		code += "\treturn " + aroundTargetWithNewReceiver(aspect.Function, aspect.Function.FuncName) + "\n"
 	} else {
-		code += "\t" + aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+		code += "\t" + aroundTargetWithNewReceiver(aspect.Function, aspect.Function.FuncName) + "\n"
 	}
 	code += "}"
 	util.Append(sourceStruct.XgcPath, code)
@@ -152,10 +168,18 @@ func (a *AroundInjectFile) InjectFunc(sourceStruct *parse.SourceStruct, aspect *
 	for _, one := range aspect.Point.imports {
 		_ = parse.Contain(sourceStruct, one)
 	}
-	invoke := aroundTarget(aspect.Function, util.Prefix+aspect.Function.FuncName) + "\n"
+
+	codeStruct := SourceStructStr(aspect.Function)
+	util.Append(sourceStruct.XgcPath, codeStruct)
+
+	invoke := aroundTargetWithNewReceiver(aspect.Function, aspect.Function.FuncName) + "\n"
 	around := strings.Replace(aspect.Point.code, "invoke()", invoke, 1)
 	around = bindParam(around, aspect)
-	_ = util.ReplaceFunctionName(sourceStruct.Path, aspect.Function.FuncName, aspect.Function.NameLine)
+	if aspect.Function.Receiver != nil {
+		util.ReplaceReceiver(sourceStruct.Path, aspect.Function.Receiver.Receiver, parse.FunctionReceiverLineNum(aspect.Function.LineString))
+	} else {
+		util.AddReceiver(sourceStruct.Path, aspect.Function.FuncName, parse.FunctionNameLineNum(aspect.Function.LineString))
+	}
 	code := SourceFunctionStr(aspect.Function) + "\n"
 	code += around
 	code += "\n}"
