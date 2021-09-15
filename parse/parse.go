@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/Justice-love/go-aspect/util"
+	"github.com/Justice-love/go-aspect/writer"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -302,7 +302,7 @@ func paramStr(str string) string {
 
 func inlineReceiver(s string) *ReceiverStruct {
 	var r *ReceiverStruct
-	arr := util.SplitSpace(strings.TrimSpace(s))
+	arr := writer.SplitSpace(strings.TrimSpace(s))
 	if len(arr) == 1 {
 		_, p := CheckPointer(strings.TrimSpace(arr[0]))
 		r = &ReceiverStruct{

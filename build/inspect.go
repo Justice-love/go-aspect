@@ -2,7 +2,7 @@ package build
 
 import (
 	"bufio"
-	"github.com/Justice-love/go-aspect/util"
+	"github.com/Justice-love/go-aspect/writer"
 	"io"
 	"io/ioutil"
 	"log"
@@ -66,7 +66,7 @@ func (i *Inspect) depend(root string) (depend []string) {
 		if strings.HasPrefix(contentStr, "#") {
 			continue
 		}
-		arr := util.SplitSpace(contentStr)
+		arr := writer.SplitSpace(contentStr)
 		depend = append(depend, arr[0])
 	}
 	return

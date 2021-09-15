@@ -1,7 +1,7 @@
 package parse
 
 import (
-	"github.com/Justice-love/go-aspect/util"
+	"github.com/Justice-love/go-aspect/writer"
 	log "github.com/sirupsen/logrus"
 	"strings"
 )
@@ -60,7 +60,7 @@ func oneParam(str string) (paramStr string, remain string) {
 }
 
 func hasType(str string) bool {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	return len(kvs) > 1
 }
 
@@ -84,7 +84,7 @@ func chooseStructType(str string) ParamStructType {
 }
 
 func structFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	types := strings.Split(kvs[1], ".")
 	if len(types) == 1 {
 		t, p := CheckPointer(types[0])
@@ -100,7 +100,7 @@ func structFunc(str string) (param *ParamStruct) {
 }
 
 func sliceFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	param = &ParamStruct{
 		Name:       kvs[0],
 		ParamType:  "slice",
@@ -110,7 +110,7 @@ func sliceFunc(str string) (param *ParamStruct) {
 }
 
 func arrayFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	param = &ParamStruct{
 		Name:       kvs[0],
 		ParamType:  "array",
@@ -120,7 +120,7 @@ func arrayFunc(str string) (param *ParamStruct) {
 }
 
 func mapFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	param = &ParamStruct{
 		Name:       kvs[0],
 		ParamType:  "map",
@@ -130,7 +130,7 @@ func mapFunc(str string) (param *ParamStruct) {
 }
 
 func funcFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	param = &ParamStruct{
 		Name:       kvs[0],
 		ParamType:  "func",
@@ -140,7 +140,7 @@ func funcFunc(str string) (param *ParamStruct) {
 }
 
 func interfaceFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	param = &ParamStruct{
 		Name:       kvs[0],
 		ParamType:  "interface",
@@ -150,7 +150,7 @@ func interfaceFunc(str string) (param *ParamStruct) {
 }
 
 func chanFunc(str string) (param *ParamStruct) {
-	kvs := util.SplitSpace(strings.TrimSpace(str))
+	kvs := writer.SplitSpace(strings.TrimSpace(str))
 	param = &ParamStruct{
 		Name:       kvs[0],
 		ParamType:  "chan",

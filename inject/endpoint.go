@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"github.com/Justice-love/go-aspect/parse"
-	"github.com/Justice-love/go-aspect/util"
+	"github.com/Justice-love/go-aspect/writer"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
@@ -142,7 +142,7 @@ func endpointCode(reader *bufio.Reader) (code string) {
 func endpointParams(s string) (params []*parse.ParamStruct) {
 	paramStrs := strings.Split(s, ",")
 	for _, one := range paramStrs {
-		nameAndType := util.SplitSpace(one)
+		nameAndType := writer.SplitSpace(one)
 		t, p := parse.CheckPointer(nameAndType[1])
 		typeFunc := parse.GetTypeStruct(t)
 		params = append(params, &parse.ParamStruct{Pointer: p, Name: nameAndType[0], StructType: typeFunc, ParamType: t})
