@@ -56,3 +56,12 @@ func TestN(t *testing.T) {
 	a := s[1:]
 	fmt.Println(a)
 }
+
+func TestDoInjectCode(t *testing.T) {
+	DoInjectCode([]*Advice{
+		{
+			Source: nil,
+			Aspect: nil,
+		},
+	})
+}
