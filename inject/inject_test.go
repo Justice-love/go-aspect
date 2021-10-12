@@ -60,7 +60,16 @@ func TestN(t *testing.T) {
 func TestDoInjectCode(t *testing.T) {
 	DoInjectCode([]*Advice{
 		{
-			Source: nil,
+			Source: &parse.SourceStruct{
+				Path:         "/Users/xuyi/go/src/eddy.org/go-aspect/out/inject.go",
+				XgcPath:      "/Users/xuyi/go/src/eddy.org/go-aspect/out/inject_xgc.go",
+				PackageStr:   "inject",
+				Imports:      nil,
+				Funcs:        nil,
+				InjectImport: nil,
+				ImportLine:   0,
+				FileLine:     0,
+			},
 			Aspect: nil,
 		},
 	})
