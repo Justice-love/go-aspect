@@ -61,10 +61,10 @@ func TestDoInjectCode(t *testing.T) {
 	DoInjectCode([]*Advice{
 		{
 			Source: &parse.SourceStruct{
-				Path:         "/Users/xuyi/go/src/eddy.org/go-aspect/out/inject.go",
-				XgcPath:      "/Users/xuyi/go/src/eddy.org/go-aspect/out/inject_xgc.go",
+				Path:         ".../out/inject.go",
+				XgcPath:      ".../out/inject_xgc.go",
 				PackageStr:   "inject",
-				Imports:      nil,
+				Imports:      []*parse.ImportStruct{},
 				Funcs:        nil,
 				InjectImport: nil,
 				ImportLine:   0,
